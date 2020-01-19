@@ -1,0 +1,16 @@
+{
+  "name": "deschutesdesigngroupllc/auth0-sso-whmcs",
+  "description": "Auth0 Single Sign On Integration for WHMCS",
+  "keywords": [
+    "whmcs",
+    "sso",
+    "auth0"
+  ],
+  "homepage": "https://www.deschutesdesigngroup.com/",
+  "require-dev": {
+    "phpunit/phpunit": "@stable"
+  },
+  "require": {
+    "jumbojett/openid-connect-php": "^0.8.0"
+  }
+}

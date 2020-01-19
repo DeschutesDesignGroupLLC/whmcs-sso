@@ -1,0 +1,6 @@
+# PHPStorm
+.idea
+
+# Dependencies
+vendor
+node_module
