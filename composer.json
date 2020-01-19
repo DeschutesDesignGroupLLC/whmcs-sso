@@ -1,16 +1,24 @@
 {
   "name": "deschutesdesigngroupllc/auth0-sso-whmcs",
-  "description": "Auth0 Single Sign On Integration for WHMCS",
+  "description": "A plug and play Single Sign-On (SSO) application for WHMCS powered by Auth0.",
   "keywords": [
     "whmcs",
     "sso",
     "auth0"
   ],
+  "authors": [
+    {
+      "name": "Jon Erickson",
+      "email": "jon@deschutesdesigngroup.com",
+      "homepage": "https://www.deschutesdesigngroup.com",
+      "role": "Owner"
+    }
+  ],
   "homepage": "https://www.deschutesdesigngroup.com/",
-  "require-dev": {
-    "phpunit/phpunit": "@stable"
-  },
   "require": {
     "jumbojett/openid-connect-php": "^0.8.0"
+  },
+  "require-dev": {
+    "phpunit/phpunit": "@stable"
   }
 }
