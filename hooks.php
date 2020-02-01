@@ -8,9 +8,11 @@ if ( !defined( "WHMCS" ) ) {
 // Include our dependencies
 include_once( __DIR__ . DIRECTORY_SEPARATOR . 'vendor' . DIRECTORY_SEPARATOR . 'autoload.php' );
 
+
 use Jumbojett\OpenIDConnectClient;
 use Jumbojett\OpenIDConnectClientException;
 use WHMCS\Module\Addon\Setting;
+use WHMCS\User\Client;
 use Illuminate\Database\Eloquent\ModelNotFoundException;
 
 /**
@@ -38,11 +40,30 @@ add_hook('ClientAreaPageLogin', 1, function( $vars ) {
             // Get our email
             $email = $oidc->requestUserInfo('email');
 
-            // Use AutoAuth to log the user in
-            $timestamp = time();
-            $hash = sha1( $email . $timestamp . $autoauth->value );
-            $url = $vars['systemurl'] . "dologin.php?email=$email&timestamp=$timestamp&hash=$hash&goto=" . urlencode( 'clientarea.php?action=products' );
-            header("Location: $url");
+
+
+            // Try and retrieve the user by email, if not create a user
+            $client = Client::firstOrNew([ 'email' => $email ]);
+            $client->email = $email;
+            $client->save();
+
+            // If we get a client
+            if ( $client )
+            {
+                // Use AutoAuth to log the user in
+                $timestamp = time();
+                $hash = sha1( $email . $timestamp . $autoauth->value );
+                $url = $vars['systemurl'] . "dologin.php?email=$email&timestamp=$timestamp&hash=$hash&goto=" . urlencode( 'clientarea.php?action=products' );
+                header("Location: $url");
+                exit;
+            }
+
+            // Redirect to error page
+            else
+            {
+                // Set our error message var
+
+            }
         }
 
         // Catch our exceptions if we cant find any settings
@@ -57,6 +78,13 @@ add_hook('ClientAreaPageLogin', 1, function( $vars ) {
         {
             // Log our errors
             logActivity( 'Auth0SSO Client Exception: ' . $exception->getMessage() );
+        }
+
+        // Catch any exception
+        catch ( Exception $exception )
+        {
+            // Log our errors
+            logActivity( 'Auth0SSO Exception: ' . $exception->getMessage() );
         }
     }
 });
