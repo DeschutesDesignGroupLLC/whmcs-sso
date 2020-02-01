@@ -40,8 +40,6 @@ add_hook('ClientAreaPageLogin', 1, function( $vars ) {
             // Get our email
             $email = $oidc->requestUserInfo('email');
 
-
-
             // Try and retrieve the user by email, if not create a user
             $client = Client::firstOrNew([ 'email' => $email ]);
             $client->email = $email;
@@ -56,13 +54,6 @@ add_hook('ClientAreaPageLogin', 1, function( $vars ) {
                 $url = $vars['systemurl'] . "dologin.php?email=$email&timestamp=$timestamp&hash=$hash&goto=" . urlencode( 'clientarea.php?action=products' );
                 header("Location: $url");
                 exit;
-            }
-
-            // Redirect to error page
-            else
-            {
-                // Set our error message var
-
             }
         }
 
