@@ -8,7 +8,6 @@ if ( !defined( "WHMCS" ) ) {
 // Include our dependencies
 include_once( __DIR__ . DIRECTORY_SEPARATOR . 'vendor' . DIRECTORY_SEPARATOR . 'autoload.php' );
 
-
 use Jumbojett\OpenIDConnectClient;
 use Jumbojett\OpenIDConnectClientException;
 use WHMCS\Module\Addon\Setting;
@@ -27,33 +26,108 @@ add_hook('ClientAreaPageLogin', 1, function( $vars ) {
         try
         {
             // Get our domain
-            $domain = Setting::where( 'module', 'auth0sso' )->where( 'setting', 'domain' )->firstOrFail();
-            $clientid = Setting::where( 'module', 'auth0sso' )->where( 'setting', 'clientid' )->firstOrFail();
-            $clientsecret = Setting::where( 'module', 'auth0sso' )->where( 'setting', 'clientsecret' )->firstOrFail();
-            $autoauth = Setting::where( 'module', 'auth0sso' )->where( 'setting', 'autoauth' )->firstOrFail();
+            $provider = Setting::where( 'module', 'oidcsso' )->where( 'setting', 'provider' )->firstOrFail();
+            $clientid = Setting::where( 'module', 'oidcsso' )->where( 'setting', 'clientid' )->firstOrFail();
+            $clientsecret = Setting::where( 'module', 'oidcsso' )->where( 'setting', 'clientsecret' )->firstOrFail();
+	        $scopes = Setting::where( 'module', 'oidcsso' )->where( 'setting', 'scopes' )->firstOrFail();
+	        $disablessl = Setting::where( 'module', 'oidcsso' )->where( 'setting', 'disablessl' )->firstOrFail();
 
             // Start our authentication code flow
-            $oidc = new OpenIDConnectClient( $domain->value, $clientid->value, $clientsecret->value );
-            $oidc->addScope( array( 'profile email openid' ) );
+            $oidc = new OpenIDConnectClient( $provider->value, $clientid->value, $clientsecret->value );
+
+            // Add scopes
+            $oidc->addScope( explode( ',', $scopes->value ) );
+
+            // If disable ssl verification
+	        if ( $disablessl )
+	        {
+	        	// Disable SSL
+		        $oidc->setVerifyHost( FALSE );
+		        $oidc->setVerifyPeer( FALSE );
+	        }
+
+	        // Start auth process
             $oidc->authenticate();
 
-            // Get our email
-            $email = $oidc->requestUserInfo('email');
+	        // Log our auth call
+	        logModuleCall( 'oidcsso', 'authorize',
+		        array(
+			        'provider' => $oidc->getProviderURL(),
+			        'client_id' => $oidc->getClientID(),
+			        'redirect_url' => $oidc->getRedirectURL(),
+			        'scope' => $scopes->value ),
+		        array(
+			        'access_token' => $oidc->getAccessToken(),
+			        'id_token' => $oidc->getIdToken() ),
+		        NULL, NULL );
+
+	        // Get our email
+	        $userinfo = $oidc->requestUserInfo();
+
+	        // Log our auth call
+	        logModuleCall( 'oidcsso', 'userinfo',
+		        array(
+			        'provider' => $oidc->getProviderURL(),
+			        'access_token' => $oidc->getAccessToken(),
+			        'client_id' => $oidc->getClientID() ),
+		        array(
+			        'id_token' => $oidc->getIdToken(),
+			        'user_info' => $userinfo ),
+		        NULL, NULL );
 
             // Try and retrieve the user by email, if not create a user
-            $client = Client::firstOrNew([ 'email' => $email ]);
-            $client->email = $email;
-            $client->save();
+            $client = Client::firstOrNew([ 'email' => $userinfo->email ]);
+
+            // If the user did not exist
+	        if ( !$client->exists )
+	        {
+	        	// If the client did not exist
+		        $client->email = $userinfo->email;
+		        $client->firstname = $userinfo->given_name ? $userinfo->given_name : 'New';
+		        $client->lastname = $userinfo->family_name ? $userinfo->family_name : 'User';
+		        $client->save();
+	        }
 
             // If we get a client
             if ( $client )
             {
-                // Use AutoAuth to log the user in
-                $timestamp = time();
-                $hash = sha1( $email . $timestamp . $autoauth->value );
-                $url = $vars['systemurl'] . "dologin.php?email=$email&timestamp=$timestamp&hash=$hash&goto=" . urlencode( 'clientarea.php?action=products' );
-                header("Location: $url");
-                exit;
+            	// Try and create an SSO token to log the user in
+            	try
+	            {
+		            // Create an SSO login
+		            $results = localAPI( 'CreateSsoToken', array(
+			            'client_id' => $client->id,
+			            'destination' => 'clientarea:services'
+		            ), 'Jon Erickson' );
+
+		            // Log our API call
+		            logModuleCall( 'oidcsso', 'CreateSsoToken', array( 'client_id' => $client->id, 'destination' => 'clientarea:services' ), $results, NULL, NULL );
+
+		            // If the result was successful
+		            if ($results['result'] == 'success')
+		            {
+			            // If we get a redirect URL
+			            if ( key_exists( 'redirect_url', $results ) )
+			            {
+				            // Redirect the user
+				            header("Location: {$results['redirect_url']}");
+			            }
+		            }
+
+		            // We got an error
+		            else
+	                {
+		                // Log our errors
+		                logActivity( 'WHMCS Local Api Error: ' . $results['error'] );
+		            }
+	            }
+
+	            // Catch an exception
+	            catch ( Exception $exception )
+	            {
+		            // Log our errors
+		            logActivity( 'WHMCS Local Api Exception: ' . $exception->getMessage() );
+	            }
             }
         }
 
@@ -61,54 +135,21 @@ add_hook('ClientAreaPageLogin', 1, function( $vars ) {
         catch ( ModelNotFoundException $exception )
         {
             // Log our errors
-            logActivity( 'Auth0SSO Model Exception: ' . $exception->getMessage() );
+            logActivity( 'OIDC SSO Model Exception: ' . $exception->getMessage() );
         }
 
         // Catch our exceptions if we cant create an OIDC client object
         catch ( OpenIDConnectClientException $exception )
         {
             // Log our errors
-            logActivity( 'Auth0SSO Client Exception: ' . $exception->getMessage() );
+            logActivity( 'OIDC SSO Client Exception: ' . $exception->getMessage() );
         }
 
         // Catch any exception
         catch ( Exception $exception )
         {
             // Log our errors
-            logActivity( 'Auth0SSO Exception: ' . $exception->getMessage() );
+            logActivity( 'OIDC SSO Exception: ' . $exception->getMessage() );
         }
-    }
-});
-
-/**
- * Client Logout Hook
- */
-add_hook('ClientLogout', 1, function( $vars )
-{
-    // Try and get our settings
-    try
-    {
-        // Get logout
-        $logout = Setting::where( 'module', 'auth0sso' )->where( 'setting', 'fulllogout' )->firstOrFail();
-
-        // If we are wanting a full logout
-        if ( $logout->value == 'on' )
-        {
-            // Get our domain
-            $domain = Setting::where( 'module', 'auth0sso' )->where( 'setting', 'domain' )->firstOrFail();
-            $clientid = Setting::where( 'module', 'auth0sso' )->where( 'setting', 'clientid' )->firstOrFail();
-            $redirect = Setting::where( 'module', 'auth0sso' )->where( 'setting', 'logoutredirect' )->firstOrFail();
-
-            // Logout of URL
-            $url = $domain->value . "/v2/logout?client_id=$clientid->value&returnTo=$redirect->value";
-            header( "Location: $url" );
-        }
-    }
-
-    // Catch our exceptions if we cant find any settings
-    catch ( ModelNotFoundException $exception )
-    {
-        // Log our errors
-        logActivity( 'Auth0SSO Model Exception: ' . $exception->getMessage() );
     }
 });

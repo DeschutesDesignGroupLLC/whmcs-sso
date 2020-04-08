@@ -1,6 +1,6 @@
 {
-  "name": "deschutesdesigngroupllc/auth0-sso-whmcs",
-  "description": "A plug and play Single Sign-On (SSO) application for WHMCS powered by Auth0.",
+  "name": "deschutesdesigngroupllc/oidc-sso-whmcs",
+  "description": "A plug and play Single Sign-On (SSO) application for WHMCS powered by OIDC.",
   "keywords": [
     "whmcs",
     "sso",
@@ -17,8 +17,5 @@
   "homepage": "https://www.deschutesdesigngroup.com/",
   "require": {
     "jumbojett/openid-connect-php": "^0.8.0"
-  },
-  "require-dev": {
-    "phpunit/phpunit": "@stable"
   }
 }
