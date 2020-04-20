@@ -12,6 +12,7 @@ use Jumbojett\OpenIDConnectClient;
 use Jumbojett\OpenIDConnectClientException;
 use WHMCS\Module\Addon\Setting;
 use WHMCS\User\Client;
+use WHMCS\Database\Capsule;
 use Illuminate\Database\Eloquent\ModelNotFoundException;
 
 /**
@@ -61,31 +62,56 @@ add_hook('ClientAreaPageLogin', 1, function( $vars ) {
 			        'id_token' => $oidc->getIdToken() ),
 		        NULL, NULL );
 
-	        // Get our email
-	        $userinfo = $oidc->requestUserInfo();
+	        // Get the subject from the ID token
+	        $token = $oidc->getIdTokenPayload();
 
-	        // Log our auth call
-	        logModuleCall( 'oidcsso', 'userinfo',
-		        array(
-			        'provider' => $oidc->getProviderURL(),
-			        'access_token' => $oidc->getAccessToken(),
-			        'client_id' => $oidc->getClientID() ),
-		        array(
-			        'id_token' => $oidc->getIdToken(),
-			        'user_info' => $userinfo ),
-		        NULL, NULL );
-
-            // Try and retrieve the user by email, if not create a user
-            $client = Client::firstOrNew([ 'email' => $userinfo->email ]);
-
-            // If the user did not exist
-	        if ( !$client->exists )
+	        // Try and see if this user has already logged in
+	        try
 	        {
-	        	// If the client did not exist
-		        $client->email = $userinfo->email;
-		        $client->firstname = $userinfo->given_name ? $userinfo->given_name : 'New';
-		        $client->lastname = $userinfo->family_name ? $userinfo->family_name : 'User';
-		        $client->save();
+		        // Query the database for a previous login link
+		        $member = Capsule::table('mod_oidcsso_members')->where('sub', $token->sub)->first();
+
+		        // We found a member, try and load the associated client
+		        $client = Client::findOrFail($member->client_id);
+	        }
+
+	        // Unable to find client
+	        catch ( \Exception $exception )
+	        {
+		        // Get our user info
+		        $userinfo = $oidc->requestUserInfo();
+
+		        // Log our auth call
+		        logModuleCall( 'oidcsso', 'userinfo',
+			        array(
+				        'provider' => $oidc->getProviderURL(),
+				        'access_token' => $oidc->getAccessToken(),
+				        'client_id' => $oidc->getClientID() ),
+			        array(
+				        'id_token' => $oidc->getIdToken(),
+				        'user_info' => $userinfo ),
+			        NULL, NULL );
+
+		        // We couldn't load a login link, so try and find the user by their email
+		        $client = Client::firstOrNew([ 'email' => $userinfo->email ]);
+
+		        // If the user did not exist
+		        if ( !$client->exists )
+		        {
+			        // If the client did not exist
+			        $client->email = $userinfo->email;
+			        $client->firstname = $userinfo->given_name ? $userinfo->given_name : 'New';
+			        $client->lastname = $userinfo->family_name ? $userinfo->family_name : 'User';
+			        $client->created_at = time();
+			        $client->updated_at = time();
+			        $client->datecreated = date("Y-m-d", time());
+			        $client->email_verified = 1;
+			        $client->allow_sso = 1;
+			        $client->save();
+		        }
+
+		        // Update the member link
+		        Capsule::insert("INSERT INTO `mod_oidcsso_members` (client_id,sub) VALUES ('{$client->id}','{$token->sub}') ON DUPLICATE KEY UPDATE sub = '{$token->sub}'");
 	        }
 
             // If we get a client
@@ -152,4 +178,20 @@ add_hook('ClientAreaPageLogin', 1, function( $vars ) {
             logActivity( 'OIDC SSO Exception: ' . $exception->getMessage() );
         }
     }
+});
+
+/**
+ * Delete Client Hook
+ */
+add_hook('ClientDelete', 1, function($vars) {
+
+	// Try and delete all SSO login links
+	try
+	{
+		// Delete all SSO login links
+		Capsule::table('mod_oidcsso_members')->where('client_id', '=', $vars['userid'])->delete();
+	}
+
+	// Catch any exceptions
+	catch ( \Exception $e ) {}
 });

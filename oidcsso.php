@@ -5,6 +5,8 @@ if ( !defined( "WHMCS" ) ) {
     die("This file cannot be accessed directly");
 }
 
+use WHMCS\Database\Capsule;
+
 /**
  * Configuration Settings
  *
@@ -51,4 +53,76 @@ function oidcsso_config() {
 	        )
         )
     );
+}
+
+/**
+ * Function to run when activating the addon
+ *
+ * @return string[]
+ */
+function oidcsso_activate()
+{
+	// Create our custom OIDC members table
+	try
+	{
+		// Create table
+		Capsule::schema()->create(
+			'mod_oidcsso_members', function ($table) {
+				$table->unsignedBigInteger('client_id', false);
+				$table->mediumText('sub')->nullable()->default(NULL);
+				$table->primary('client_id');
+			}
+		);
+
+		// Return our message
+		return [
+			// Supported values here include: success, error or info
+			'status' => 'success',
+			'description' => 'The addon has been successfully activated.'
+		];
+	}
+
+	// Catch our errors
+	catch ( \Exception $exception )
+	{
+		// Return our message
+		return [
+			// Supported values here include: success, error or info
+			'status' => 'error',
+			'description' => "Unable to activate addon: {$exception->getMessage()}"
+		];
+	}
+}
+
+/**
+ * Function to run when deactivating the addon
+ *
+ * @return string[]
+ */
+function oidcsso_deactivate()
+{
+	// Try and drop tables that were created when activating the addon
+	try
+	{
+		// Drop our custom table
+		Capsule::schema()->dropIfExists('mod_oidcsso_members');
+
+		// Return our status
+		return [
+			// Supported values here include: success, error or info
+			'status' => 'success',
+			'description' => 'The addon has been successfully deactivated.'
+		];
+	}
+
+	// Catch our errors
+	catch ( \Exception $exception )
+	{
+		// Return our status
+		return [
+			// Supported values here include: success, error or info
+			"status" => "error",
+			"description" => "Unable to deactivate addon: {$exception->getMessage()}",
+		];
+	}
 }
