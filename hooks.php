@@ -195,3 +195,51 @@ add_hook('ClientDelete', 1, function($vars) {
 	// Catch any exceptions
 	catch ( \Exception $e ) {}
 });
+
+/**
+ * Client Change Password
+ */
+add_hook('ClientAreaPageChangePassword', 1, function($vars) {
+
+	// Try and get our settings
+	try
+	{
+		// Get our domain
+		$redirect = Setting::where( 'module', 'oidcsso' )->where( 'setting', 'redirectpassword' )->firstOrFail();
+
+		// If we have a valid URL
+		if ( isset( $redirect->value ) AND $redirect->value != NULL )
+		{
+			// Redirect to change password
+			header("Location: {$redirect->value}");
+			exit;
+		}
+	}
+
+	// Catch any errors
+	catch ( \Exception $exception ) {}
+});
+
+/**
+ * Client Logout
+ */
+add_hook('ClientAreaPageLogout', 1, function($vars) {
+
+	// Try and get our settings
+	try
+	{
+		// Get our domain
+		$redirect = Setting::where( 'module', 'oidcsso' )->where( 'setting', 'redirectlogout' )->firstOrFail();
+
+		// If we have a valid URL
+		if ( isset( $redirect->value ) AND $redirect->value != NULL )
+		{
+			// Redirect to logout page
+			header("Location: {$redirect->value}");
+			exit;
+		}
+	}
+
+	// Catch any errors
+	catch ( \Exception $exception ) {}
+});

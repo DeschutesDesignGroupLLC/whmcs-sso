@@ -17,7 +17,7 @@ function oidcsso_config() {
     // Return our config settings
     return array(
         "name" => "OIDC Single Sign-On Integration",
-        "description" => "A plug and play Single Sign-On (SSO) application for WHMCS powered by OIDC.",
+        "description" => "A plug and play Single Sign-On (SSO) addon for WHMCS enabling your software to integrate with a OIDC equipped identity provider..",
         "version" => "1.0",
         "author" => "Deschutes Design Group LLC",
         "language" => 'english',
@@ -50,6 +50,18 @@ function oidcsso_config() {
 		        "FriendlyName" => "Disable SSL Verification",
 		        "Type" => "yesno",
 		        "Description" => "In some cases you may need to disable SSL security on your development systems. Note: This is not recommended on production systems."
+	        ),
+	        "redirectpassword" => array(
+		        "FriendlyName" => "Change Password Redirect",
+		        "Type" => "text",
+		        "Size" => "25",
+		        "Description" => "<br>If you'd like to redirect members to central page to change their password, enter the URL. If not, leave blank."
+	        ),
+	        "redirectlogout" => array(
+		        "FriendlyName" => "Logout Redirect",
+		        "Type" => "text",
+		        "Size" => "25",
+		        "Description" => "<br>If you'd like to redirect members after they logout, enter the URL. If not, leave blank."
 	        )
         )
     );
