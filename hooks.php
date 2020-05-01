@@ -217,31 +217,69 @@ add_hook('ClientAreaPageChangePassword', 1, function($vars) {
 	}
 
 	// Catch any errors
-	catch ( \Exception $exception ) {}
+	catch ( \Exception $exception )
+	{
+		// Got Error
+		logActivity( 'OIDC SSO Change Password Exception: ' . $exception->getMessage() );
+	}
+});
+
+/**
+ * Client Logout Page
+ */
+add_hook('ClientAreaPageLogout', 1, function($vars) {
+
+	// If the logout redirect URL is set
+	if ( isset( $_SESSION['oidcsso_logout_redirect'] ) )
+	{
+		// Redirect
+		header("Location: {$_SESSION['oidcsso_logout_redirect']}");
+		unset($_SESSION['oidcsso_logout_redirect']);
+		exit;
+	}
 });
 
 /**
  * Client Logout
  */
-add_hook('ClientAreaPageLogout', 1, function($vars) {
+add_hook('ClientLogout', 1, function($vars) {
 
 	// Try and get our settings
 	try
 	{
-		// Get our redirect URL
+		// Get our logout URL
 		$redirect = Setting::where( 'module', 'oidcsso' )->where( 'setting', 'redirectlogout' )->firstOrFail();
 
 		// If we have a valid URL
 		if ( isset( $redirect->value ) AND $redirect->value != NULL )
 		{
-			// Redirect to logout page
-			header("Location: {$redirect->value}");
-			exit;
+			// See if we are attaching the token
+			$attach = Setting::where( 'module', 'oidcsso' )->where( 'setting', 'logoutidtoken' )->firstOrFail();
+			$parameter = Setting::where( 'module', 'oidcsso' )->where( 'setting', 'logoutidtokenparameter' )->firstOrFail();
+			$member = Capsule::table('mod_oidcsso_members')->where('client_id', $vars['userid'])->first();
+
+			// Construct the URL
+			$logout = $redirect->value;
+
+			// If we are appending the token
+			if ( $attach->value AND $parameter->value AND $member->id_token )
+			{
+				// Attach the ID token
+				$logout = rtrim( $logout,"/" ) . http_build_query( [ $parameter->value => $member->id_token ], '', '&' );
+			}
+
+			// Store the logout redirect
+			$_SESSION['oidcsso_logout_redirect'] = $logout;
 		}
 	}
 
 	// Catch any errors
-	catch ( \Exception $exception ) {}
+	catch ( \Exception $exception )
+	{
+		// Got Error
+		logActivity( 'OIDC SSO Logout Exception: ' . $exception->getMessage() );
+
+	}
 });
 
 /**
@@ -265,7 +303,11 @@ add_hook('ClientAreaPageRegister', 1, function ($vars) {
 	}
 
 	// Catch any errors
-	catch ( \Exception $exception ) {}
+	catch ( \Exception $exception )
+	{
+		// Got Error
+		logActivity( 'OIDC SSO Register Exception: ' . $exception->getMessage() );
+	}
 });
 
 /**

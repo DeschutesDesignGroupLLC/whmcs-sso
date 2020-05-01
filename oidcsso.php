@@ -52,23 +52,34 @@ function oidcsso_config() {
 		        "Description" => "In some cases you may need to disable SSL security on your development systems. Note: This is not recommended on production systems."
 	        ),
 	        "redirectregistration" => array(
-		        "FriendlyName" => "Registration Redirect",
+		        "FriendlyName" => "Registration URL",
 		        "Type" => "text",
 		        "Size" => "25",
 		        "Description" => "<br>If provided, the client will be taken to this URL when attempting to create an account."
 	        ),
 	        "redirectpassword" => array(
-		        "FriendlyName" => "Change Password Redirect",
+		        "FriendlyName" => "Change Password URL",
 		        "Type" => "text",
 		        "Size" => "25",
-		        "Description" => "<br>If you'd like to redirect clients to a central page to change their password, enter the URL. If not, leave blank."
+		        "Description" => "<br>If provided, the client will be taken to this URL to update their password."
 	        ),
 	        "redirectlogout" => array(
-		        "FriendlyName" => "Logout Redirect",
+		        "FriendlyName" => "Logout URL",
 		        "Type" => "text",
 		        "Size" => "25",
-		        "Description" => "<br>If you'd like to redirect clients after they logout, enter the URL. If not, leave blank."
-	        )
+		        "Description" => "<br>If provided, the client will be taken to this URL when attempting to logout."
+	        ),
+	        "logoutidtoken" => array(
+		        "FriendlyName" => "Append ID Token",
+		        "Type" => "yesno",
+		        "Description" => "Attach the client's ID token to the end of the logout URL. You can specify the parameter below."
+	        ),
+	        "logoutidtokenparameter" => array(
+		        "FriendlyName" => "ID Token Parameter",
+		        "Type" => "text",
+		        "Size" => "25",
+		        "Description" => "<br>The name of the parameter the ID token will be set as within the logout URL."
+	        ),
         )
     );
 }

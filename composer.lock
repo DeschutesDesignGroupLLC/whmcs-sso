@@ -4,19 +4,19 @@
         "Read more about it at https://getcomposer.org/doc/01-basic-usage.md#installing-dependencies",
         "This file is @generated automatically"
     ],
-    "content-hash": "cad62322c27e9d501d9e2fc82f5c5dbf",
+    "content-hash": "32364058933207a3f753a94668e17dd3",
     "packages": [
         {
             "name": "jumbojett/openid-connect-php",
             "version": "v0.8.0",
             "source": {
                 "type": "git",
-                "url": "https://github.com/jumbojett/OpenID-Connect-PHP.git",
+                "url": "https://github.com/DeschutesDesignGroupLLC/OpenID-Connect-PHP.git",
                 "reference": "08c29b063803538f345183b66ac05cff7ed6eb9b"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/jumbojett/OpenID-Connect-PHP/zipball/08c29b063803538f345183b66ac05cff7ed6eb9b",
+                "url": "https://api.github.com/repos/DeschutesDesignGroupLLC/OpenID-Connect-PHP/zipball/08c29b063803538f345183b66ac05cff7ed6eb9b",
                 "reference": "08c29b063803538f345183b66ac05cff7ed6eb9b",
                 "shasum": ""
             },
