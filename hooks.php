@@ -111,7 +111,7 @@ add_hook('ClientAreaPageLogin', 1, function( $vars ) {
 		        }
 
 		        // Update the member link
-		        Capsule::insert("INSERT INTO `mod_oidcsso_members` (client_id,sub) VALUES ('{$client->id}','{$token->sub}') ON DUPLICATE KEY UPDATE sub = '{$token->sub}'");
+		        Capsule::insert("INSERT INTO `mod_oidcsso_members` (client_id,sub,access_token,id_token) VALUES ('{$client->id}','{$token->sub}','{$oidc->getAccessToken()}','{$oidc->getIdToken()}') ON DUPLICATE KEY UPDATE sub = '{$token->sub}'");
 	        }
 
             // If we get a client
@@ -204,7 +204,7 @@ add_hook('ClientAreaPageChangePassword', 1, function($vars) {
 	// Try and get our settings
 	try
 	{
-		// Get our domain
+		// Get our redirect URL
 		$redirect = Setting::where( 'module', 'oidcsso' )->where( 'setting', 'redirectpassword' )->firstOrFail();
 
 		// If we have a valid URL
@@ -228,13 +228,37 @@ add_hook('ClientAreaPageLogout', 1, function($vars) {
 	// Try and get our settings
 	try
 	{
-		// Get our domain
+		// Get our redirect URL
 		$redirect = Setting::where( 'module', 'oidcsso' )->where( 'setting', 'redirectlogout' )->firstOrFail();
 
 		// If we have a valid URL
 		if ( isset( $redirect->value ) AND $redirect->value != NULL )
 		{
 			// Redirect to logout page
+			header("Location: {$redirect->value}");
+			exit;
+		}
+	}
+
+	// Catch any errors
+	catch ( \Exception $exception ) {}
+});
+
+/**
+ * Client Registration
+ */
+add_hook('ClientAreaPageRegister', 1, function ($vars) {
+
+	// Try and get our settings
+	try
+	{
+		// Get our redirect URL
+		$redirect = Setting::where( 'module', 'oidcsso' )->where( 'setting', 'redirectregistration' )->firstOrFail();
+
+		// If we have a valid URL
+		if ( isset( $redirect->value ) AND $redirect->value != NULL )
+		{
+			// Redirect to registration page
 			header("Location: {$redirect->value}");
 			exit;
 		}
