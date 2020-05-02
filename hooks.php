@@ -120,7 +120,7 @@ add_hook('ClientAreaPageLogin', 1, function( $vars ) {
             	// Try and create an SSO token to log the user in
             	try
 	            {
-		            // Create an SSO login
+	            	// Create an SSO login
 		            $results = localAPI( 'CreateSsoToken', array(
 			            'client_id' => $client->id,
 			            'destination' => 'clientarea:services'
@@ -130,13 +130,14 @@ add_hook('ClientAreaPageLogin', 1, function( $vars ) {
 		            logModuleCall( 'oidcsso', 'CreateSsoToken', array( 'client_id' => $client->id, 'destination' => 'clientarea:services' ), $results, NULL, NULL );
 
 		            // If the result was successful
-		            if ($results['result'] == 'success')
+		            if ( $results['result'] == 'success' )
 		            {
-			            // If we get a redirect URL
+		            	// If we get a redirect URL
 			            if ( key_exists( 'redirect_url', $results ) )
 			            {
 				            // Redirect the user
 				            header("Location: {$results['redirect_url']}");
+				            exit;
 			            }
 		            }
 
@@ -181,7 +182,22 @@ add_hook('ClientAreaPageLogin', 1, function( $vars ) {
 });
 
 /**
- * Delete Client Hook
+ * Client Area Services and Products
+ */
+add_hook('ClientAreaPageProductsServices', 1, function($vars) {
+
+	// Do we have a redirect url store
+	if ( isset( $_SESSION['oidc_redirect_url'] ) )
+	{
+		// Redirect to the stored url
+		header("Location: {$_SESSION['oidc_redirect_url']}");
+		unset($_SESSION['oidc_redirect_url']);
+		exit;
+	}
+});
+
+/**
+ * Delete Client
  */
 add_hook('ClientDelete', 1, function($vars) {
 
@@ -318,170 +334,28 @@ add_hook("ClientAreaPageCart",1, function($vars) {
 	// If on the checkout page
 	if ( $_GET['a'] == 'checkout' )
 	{
-		// Get the current client
-		$client = Menu::context("client");
-		$clientid = (int) $client->id;
-
 		// If we have no client
-		if ( $clientid===0 ) {
+		if ( !$_SESSION['uid'] )
+		{
+			// Store our redirect url
+			$_SESSION['oidc_redirect_url'] = $vars['systemurl'] . 'cart.php?a=checkout';
 
-			// Try and get our settings
-			try
-			{
-				// Get our domain
-				$provider = Setting::where( 'module', 'oidcsso' )->where( 'setting', 'provider' )->firstOrFail();
-				$clientid = Setting::where( 'module', 'oidcsso' )->where( 'setting', 'clientid' )->firstOrFail();
-				$clientsecret = Setting::where( 'module', 'oidcsso' )->where( 'setting', 'clientsecret' )->firstOrFail();
-				$scopes = Setting::where( 'module', 'oidcsso' )->where( 'setting', 'scopes' )->firstOrFail();
-				$disablessl = Setting::where( 'module', 'oidcsso' )->where( 'setting', 'disablessl' )->firstOrFail();
-
-				// Start our authentication code flow
-				$oidc = new OpenIDConnectClient( $provider->value, $clientid->value, $clientsecret->value );
-
-				// Set redirect URL
-				$oidc->setRedirectURL($vars['systemurl'] . 'cart.php?a=checkout');
-
-				// Add scopes
-				$oidc->addScope( explode( ',', $scopes->value ) );
-
-				// If disable ssl verification
-				if ( $disablessl )
-				{
-					// Disable SSL
-					$oidc->setVerifyHost( FALSE );
-					$oidc->setVerifyPeer( FALSE );
-				}
-
-				// Start auth process
-				$oidc->authenticate();
-
-				// Log our auth call
-				logModuleCall( 'oidcsso', 'authorize',
-					array(
-						'provider' => $oidc->getProviderURL(),
-						'client_id' => $oidc->getClientID(),
-						'redirect_url' => $oidc->getRedirectURL(),
-						'scope' => $scopes->value ),
-					array(
-						'access_token' => $oidc->getAccessToken(),
-						'id_token' => $oidc->getIdToken() ),
-					NULL, NULL );
-
-				// Get the subject from the ID token
-				$token = $oidc->getIdTokenPayload();
-
-				// Try and see if this user has already logged in
-				try
-				{
-					// Query the database for a previous login link
-					$member = Capsule::table('mod_oidcsso_members')->where('sub', $token->sub)->first();
-
-					// We found a member, try and load the associated client
-					$client = Client::findOrFail($member->client_id);
-				}
-
-				// Unable to find client
-				catch ( \Exception $exception )
-				{
-					// Get our user info
-					$userinfo = $oidc->requestUserInfo();
-
-					// Log our auth call
-					logModuleCall( 'oidcsso', 'userinfo',
-						array(
-							'provider' => $oidc->getProviderURL(),
-							'access_token' => $oidc->getAccessToken(),
-							'client_id' => $oidc->getClientID() ),
-						array(
-							'id_token' => $oidc->getIdToken(),
-							'user_info' => $userinfo ),
-						NULL, NULL );
-
-					// We couldn't load a login link, so try and find the user by their email
-					$client = Client::firstOrNew([ 'email' => $userinfo->email ]);
-
-					// If the user did not exist
-					if ( !$client->exists )
-					{
-						// If the client did not exist
-						$client->email = $userinfo->email;
-						$client->firstname = $userinfo->given_name ? $userinfo->given_name : 'New';
-						$client->lastname = $userinfo->family_name ? $userinfo->family_name : 'User';
-						$client->created_at = time();
-						$client->updated_at = time();
-						$client->datecreated = date("Y-m-d", time());
-						$client->email_verified = 1;
-						$client->allow_sso = 1;
-						$client->save();
-					}
-
-					// Update the member link
-					Capsule::insert("INSERT INTO `mod_oidcsso_members` (client_id,sub,access_token,id_token) VALUES ('{$client->id}','{$token->sub}','{$oidc->getAccessToken()}','{$oidc->getIdToken()}') ON DUPLICATE KEY UPDATE sub = '{$token->sub}'");
-				}
-
-				// If we get a client
-				if ( $client )
-				{
-					// Try and create an SSO token to log the user in
-					try
-					{
-						// Create an SSO login
-						$results = localAPI( 'CreateSsoToken', array(
-							'client_id' => $client->id,
-							'destination' => 'clientarea:shopping_cart'
-						), 'Jon Erickson' );
-
-						// Log our API call
-						logModuleCall( 'oidcsso', 'CreateSsoToken', array( 'client_id' => $client->id, 'destination' => 'clientarea:services' ), $results, NULL, NULL );
-
-						// If the result was successful
-						if ($results['result'] == 'success')
-						{
-							// If we get a redirect URL
-							if ( key_exists( 'redirect_url', $results ) )
-							{
-								// Redirect the user
-								header("Location: {$results['redirect_url']}");
-							}
-						}
-
-						// We got an error
-						else
-						{
-							// Log our errors
-							logActivity( 'WHMCS Local Api Error: ' . $results['error'] );
-						}
-					}
-
-					// Catch an exception
-					catch ( Exception $exception )
-					{
-						// Log our errors
-						logActivity( 'WHMCS Local Api Exception: ' . $exception->getMessage() );
-					}
-				}
-			}
-
-			// Catch our exceptions if we cant find any settings
-			catch ( ModelNotFoundException $exception )
-			{
-				// Log our errors
-				logActivity( 'OIDC SSO Model Exception: ' . $exception->getMessage() );
-			}
-
-			// Catch our exceptions if we cant create an OIDC client object
-			catch ( OpenIDConnectClientException $exception )
-			{
-				// Log our errors
-				logActivity( 'OIDC SSO Client Exception: ' . $exception->getMessage() );
-			}
-
-			// Catch any exception
-			catch ( Exception $exception )
-			{
-				// Log our errors
-				logActivity( 'OIDC SSO Exception: ' . $exception->getMessage() );
-			}
+			// Redirect to login
+			header("Location: {$vars['systemurl']}clientarea.php");
+			exit;
 		}
+	}
+});
+
+/**
+ * Affiliates Page
+ */
+add_hook('ClientAreaPageAffiliates', 1, function($vars) {
+
+	// If we have no client
+	if ( !$_SESSION['uid'] )
+	{
+		// Store our redirect url
+		$_SESSION['oidc_redirect_url'] = $vars['systemurl'] . 'affiliates.php';
 	}
 });
