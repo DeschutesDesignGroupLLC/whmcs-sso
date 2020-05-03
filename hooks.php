@@ -36,6 +36,9 @@ add_hook('ClientAreaPageLogin', 1, function( $vars ) {
             // Start our authentication code flow
             $oidc = new OpenIDConnectClient( $provider->value, $clientid->value, $clientsecret->value );
 
+            // Set our redirect URL
+	        $oidc->setRedirectURL( $vars['systemurl'] . 'clientarea.php' );
+
             // Add scopes
             $oidc->addScope( explode( ',', $scopes->value ) );
 
@@ -210,6 +213,34 @@ add_hook('ClientDelete', 1, function($vars) {
 
 	// Catch any exceptions
 	catch ( \Exception $e ) {}
+});
+
+/**
+ * Client Password Reset
+ */
+add_hook('ClientAreaPagePasswordReset', 1, function($vars) {
+
+	// Try and get our settings
+	try
+	{
+		// Get our redirect URL
+		$redirect = Setting::where( 'module', 'oidcsso' )->where( 'setting', 'redirectpassword' )->firstOrFail();
+
+		// If we have a valid URL
+		if ( isset( $redirect->value ) AND $redirect->value != NULL )
+		{
+			// Redirect to change password
+			header("Location: {$redirect->value}");
+			exit;
+		}
+	}
+
+	// Catch any errors
+	catch ( \Exception $exception )
+	{
+		// Got Error
+		logActivity( 'OIDC SSO Reset Password Exception: ' . $exception->getMessage() );
+	}
 });
 
 /**
