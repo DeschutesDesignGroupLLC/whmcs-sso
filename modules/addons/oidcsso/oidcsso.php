@@ -18,7 +18,7 @@ function oidcsso_config() {
     return array(
         "name" => "OIDC Single Sign-On Integration",
         "description" => "A plug and play Single Sign-On (SSO) addon for WHMCS enabling your software to integrate with a OIDC equipped identity provider.",
-        "version" => "1.0",
+        "version" => "1.1",
         "author" => "Deschutes Design Group LLC",
         "language" => 'english',
         "fields" => array(
@@ -101,6 +101,7 @@ function oidcsso_activate()
 				$table->mediumText('sub')->nullable()->default(NULL);
 				$table->mediumText('access_token')->nullable()->default(NULL);
 				$table->mediumText('id_token')->nullable()->default(NULL);
+				$table->smallInteger('onboarded')->default(0);
 				$table->primary('client_id');
 			}
 		);
@@ -155,5 +156,28 @@ function oidcsso_deactivate()
 			"status" => "error",
 			"description" => "Unable to deactivate addon: {$exception->getMessage()}",
 		];
+	}
+}
+
+/**
+ * Upgrader function
+ *
+ * @param $vars
+ */
+function oidcsso_upgrade($vars)
+{
+	// Get the currently installed version
+	$currentlyInstalledVersion = $vars['version'];
+
+	// Perform SQL schema changes required by the upgrade to version 1.1 of your module
+	if ($currentlyInstalledVersion < 1.1) {
+
+		// Get the schema
+		$schema = Capsule::schema();
+
+		// Add an onboarded column
+		$schema->table('mod_oidcsso_members', function($table) {
+			$table->smallInteger('onboarded')->default(0);
+		});
 	}
 }
