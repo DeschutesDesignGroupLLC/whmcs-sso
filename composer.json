@@ -15,8 +15,11 @@
     }
   ],
   "homepage": "https://www.deschutesdesigngroup.com/",
+  "config": {
+    "vendor-dir": "modules/addons/oidcsso/vendor"
+  },
   "require": {
-    "jumbojett/openid-connect-php": "^0.8.0"
+    "deschutesdesigngroupllc/openid-connect-php":"dev-master"
   },
   "repositories": [
     {
