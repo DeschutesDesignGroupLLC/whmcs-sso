@@ -17,6 +17,17 @@ use WHMCS\Cookie;
 use Illuminate\Database\Eloquent\ModelNotFoundException;
 
 /**
+ * Client Area Head Output
+ */
+add_hook('ClientAreaHeadOutput', 1, function($vars) {
+	$template = $vars['template'];
+	return <<<HTML
+    <meta name="robots" content="nofollow">
+HTML;
+
+});
+
+/**
  * Client Area Login Hook
  */
 add_hook('ClientAreaPageLogin', 1, function( $vars ) {
@@ -108,7 +119,13 @@ add_hook('ClientAreaPageLogin', 1, function( $vars ) {
 		        // If the user did not exist
 		        if ( !$client->exists )
 		        {
-			        // If the client did not exist
+			        // Add the client
+//			        localAPI( 'AddClient', array(
+//				        'firstname' => $userinfo->given_name ? $userinfo->given_name : 'New',
+//				        'lastname' => $userinfo->family_name ? $userinfo->family_name : 'User',
+//				        'email' => $userinfo->email
+//			        ), 'Jon Erickson' );
+
 			        $client->email = $userinfo->email;
 			        $client->firstname = $userinfo->given_name ? $userinfo->given_name : 'New';
 			        $client->lastname = $userinfo->family_name ? $userinfo->family_name : 'User';
