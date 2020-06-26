@@ -1,11 +1,14 @@
 <?php
 
-use WHMCS\ClientArea;
-use WHMCS\Database\Capsule;
-
 define('CLIENTAREA', true);
 
-require __DIR__ . '/init.php';
+require "init.php";
+require "includes/clientfunctions.php";
+
+use WHMCS\ClientArea;
+use WHMCS\Database\Capsule;
+use WHMCS\Cookie;
+use Ramsey\Uuid\Uuid;
 
 /**
  * Start the Client Area
@@ -21,22 +24,22 @@ $ca->setPageTitle('Finish Account Setup');
  * Add Some Breadcrumbs
  */
 $ca->addToBreadCrumb('index.php', Lang::trans('globalsystemname'));
-$ca->addToBreadCrumb('onboard.php', 'Your Custom Page Name');
+$ca->addToBreadCrumb('onboard.php', 'Profile Setup');
 
 /**
  * Initiate the page
  */
 $ca->initPage();
 
-/**
- * Require Login
- */
-$ca->requireLogin(); // Uncomment this line to require a login to access this page
+// Get the user's email
+$email = Cookie::get('OIDCOnboarding');
 
-/**
- * If Logged In
- */
-if ($ca->isLoggedIn()) {
+// If we have an email to work with
+if ($email) {
+
+	// Assign the email var
+	$ca->assign('clientemail', $email);
+	$ca->assign("clientcountriesdropdown", getCountriesDropDown());
 
 	// If we submitted the form
 	$action = isset($_REQUEST['action']) AND $_REQUEST['action'] == 'submit' ? $_REQUEST['action'] : NULL;
@@ -46,86 +49,83 @@ if ($ca->isLoggedIn()) {
 
 		// Create our client data array
 		$data = array(
-			'clientid' => $ca->getUserID(),
 			'firstname' => $_POST['firstname'],
 			'lastname' => $_POST['lastname'],
 			'companyname' => $_POST['companyname'],
+			'email' => $email,
 			'address1' => $_POST['address1'],
 			'address2' => $_POST['address2'],
 			'city' => $_POST['city'],
 			'state' => $_POST['state'],
 			'postcode' => $_POST['postcode'],
-			'phonenumber' => $_POST['phonenumber']
+			'country' => $_POST['country'],
+			'phonenumber' => $_POST['phonenumber'],
+			'password2' => Uuid::uuid4()->toString()
 		);
 
-		// Update the client
-		$results = localAPI('UpdateClient', $data);
+		// Compose an array of errors and perform our validation checks
+		$errors = array();
+		$_POST['firstname'] ?: $errors[] = 'You did not enter your first name.';
+		$_POST['lastname'] ?: $errors[] = 'You did not enter your last name.';
+		$_POST['address1'] ?: $errors[] = 'You did not enter your street address.';
+		$_POST['city'] ?: $errors[] = 'You did not enter your city.';
+		$_POST['state'] ?: $errors[] = 'You did not enter your state.';
+		$_POST['postcode'] ?: $errors[] = 'You did not enter your zip code.';
+		$_POST['country'] ?: $errors[] = 'You did not enter your country.';
+		$_POST['phonenumber'] ?: $errors[] = 'You did not enter your phone number.';
 
-		// Set onboarded flag
-		Capsule::table('mod_oidcsso_members')->where('client_id', '=', $ca->getUserID())->update(['onboarded' => 1]);
+		// If we got a successful response
+		if (empty($errors)) {
 
-		// Forward to client area
-		header('Location: clientarea.php');
-	}
+			// Add the client
+			$add = localAPI('AddClient', $data, 'Jon Erickson' );
 
-	// Form isn't submitted
-	else
-	{
-		/**
-		 * See if they still need to onboard
-		 */
-		$sso_member = Capsule::table('mod_oidcsso_members')->where('client_id', '=', $ca->getUserID())->first();
+			// If we successfully created the user
+			if ($add['result'] == 'success' AND $add['clientid']) {
 
-		// If they haven't onboarded
-		if (!$sso_member->onboarded) {
+				// Create an SSO login
+				$sso = localAPI('CreateSsoToken', ['client_id' => $add['clientid'], 'destination' => 'clientarea:services'], 'Jon Erickson');
 
-			/**
-			 * Get the Client
-			 */
-			$client = Capsule::table('tblclients')->where('id', '=', $ca->getUserID())->first();
+				// If the result was successful
+				if ($sso['result'] == 'success') {
 
-			// If we get a Client
-			if ( $client->id )
-			{
-				/**
-				 * Assign Template Variables
-				 */
-				$ca->assign('clientfirstname', $client->firstname);
-				$ca->assign('clientlastname', $client->lastname);
-				$ca->assign('clientcompanyname', $client->companyname);
-				$ca->assign('clientemail', $client->email);
-				$ca->assign('clientphonenumber', $client->phonenumber);
-				$ca->assign('clientaddress1', $client->address1);
-				$ca->assign('clientaddress2', $client->address2);
-				$ca->assign('clientcity', $client->city);
-				$ca->assign('clientstate', $client->state);
-				$ca->assign('clientpostcode', $client->postcode);
+					// If we get a redirect URL
+					if (key_exists( 'redirect_url', $sso))
+					{
+						// Redirect the user
+						header("Location: {$sso['redirect_url']}");
+						exit;
+					}
+				}
+
+				// If we have an CreateSsoToken API error
+				else {
+
+					// Add the error
+					$errors[] = $sso['error'];
+				}
 			}
 
-			// Didnt find the client
+			// If we have an AddClient API error
 			else {
 
-				// Redirect to Client Area
-				header('Location: clientarea.php');
+				// Add the error
+				$errors[] = $add['error'];
 			}
 		}
 
-		// Didnt find the client
-		else {
+		// If we have some errors
+		if (!empty($errors)) {
 
-			// Redirect to Client Area
-			header('Location: clientarea.php');
+			// Set error
+			$ca->assign('errormessage', implode( '<br />', $errors));
 		}
 	}
 }
 
-/**
- * Not Logged In
- */
+// We don't have a user email stored in a cooke
 else {
 
-	// Redirect to client area
-	header('Location: clientarea.php');
 }
 
 /**

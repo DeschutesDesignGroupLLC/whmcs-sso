@@ -22,7 +22,7 @@ use Illuminate\Database\Eloquent\ModelNotFoundException;
 add_hook('ClientAreaHeadOutput', 1, function($vars) {
 	$template = $vars['template'];
 	return <<<HTML
-    <meta name="robots" content="nofollow">
+    <meta name="robots" content="noindex, nofollow">
 HTML;
 
 });
@@ -52,7 +52,7 @@ add_hook('ClientAreaPageLogin', 1, function( $vars ) {
 	        $oidc = new OpenIDConnectClient( $provider->value, $clientid->value, $clientsecret->value );
 
 	        // Set our redirect URL
-	        $oidc->setRedirectURL( $vars['systemurl'] . 'clientarea.php' );
+	        $oidc->setRedirectURL( (isset($_SERVER['HTTPS']) && $_SERVER['HTTPS'] === 'on' ? "https" : "http") . "://$_SERVER[HTTP_HOST]" . '/clientarea.php' );
 
 	        // Add scopes
 	        $oidc->addScope( $scopes );
@@ -68,9 +68,6 @@ add_hook('ClientAreaPageLogin', 1, function( $vars ) {
 		        $oidc->setVerifyPeer( FALSE );
 	        }
 
-	        // Start auth process
-	        $oidc->authenticate();
-
 	        // Log our auth call
 	        logModuleCall( 'oidcsso', 'authorize',
 		        array(
@@ -82,6 +79,9 @@ add_hook('ClientAreaPageLogin', 1, function( $vars ) {
 			        'access_token' => $oidc->getAccessToken(),
 			        'id_token' => $oidc->getIdToken() ),
 		        NULL, NULL );
+
+	        // Start auth process
+	        $oidc->authenticate();
 
 	        // Get the subject from the ID token
 	        $token = $oidc->getIdTokenPayload();
@@ -114,31 +114,18 @@ add_hook('ClientAreaPageLogin', 1, function( $vars ) {
 			        NULL, NULL );
 
 		        // We couldn't load a login link, so try and find the user by their email
-		        $client = Client::firstOrNew([ 'email' => $userinfo->email ]);
+		        $client = Client::where('email', $userinfo->email)->get()->first();
 
 		        // If the user did not exist
-		        if ( !$client->exists )
+		        if ( !$client )
 		        {
-			        // Add the client
-//			        localAPI( 'AddClient', array(
-//				        'firstname' => $userinfo->given_name ? $userinfo->given_name : 'New',
-//				        'lastname' => $userinfo->family_name ? $userinfo->family_name : 'User',
-//				        'email' => $userinfo->email
-//			        ), 'Jon Erickson' );
+		        	// Store the users email address
+			        Cookie::set('OIDCOnboarding', $userinfo->email, strtotime('+1 hour', time()));
 
-			        $client->email = $userinfo->email;
-			        $client->firstname = $userinfo->given_name ? $userinfo->given_name : 'New';
-			        $client->lastname = $userinfo->family_name ? $userinfo->family_name : 'User';
-			        $client->created_at = time();
-			        $client->updated_at = time();
-			        $client->datecreated = date("Y-m-d", time());
-			        $client->email_verified = 1;
-			        $client->allow_sso = 1;
-			        $client->save();
+			        // Redirect to change password
+			        header("Location: onboard.php");
+			        exit;
 		        }
-
-		        // Update the member link
-		        Capsule::insert("INSERT INTO `mod_oidcsso_members` (client_id,sub,access_token,id_token) VALUES ('{$client->id}','{$token->sub}','{$oidc->getAccessToken()}','{$oidc->getIdToken()}') ON DUPLICATE KEY UPDATE sub = '{$token->sub}'");
 	        }
 
 	        // If we get a client
@@ -147,11 +134,8 @@ add_hook('ClientAreaPageLogin', 1, function( $vars ) {
 		        // Try and create an SSO token to log the user in
 		        try
 		        {
-			        // Create an SSO login
-			        $results = localAPI( 'CreateSsoToken', array(
-				        'client_id' => $client->id,
-				        'destination' => 'clientarea:services'
-			        ), 'Jon Erickson' );
+		        	// Create an SSO login
+			        $results = localAPI( 'CreateSsoToken', ['client_id' => $client->id, 'destination' => 'clientarea:services'], 'Jon Erickson' );
 
 			        // Log our API call
 			        logModuleCall( 'oidcsso', 'CreateSsoToken', array( 'client_id' => $client->id, 'destination' => 'clientarea:services' ), $results, NULL, NULL );
@@ -159,9 +143,6 @@ add_hook('ClientAreaPageLogin', 1, function( $vars ) {
 			        // If the result was successful
 			        if ( $results['result'] == 'success' )
 			        {
-			            // Set the remember me cookie
-				        Cookie::set( 'User', $client->id, strtotime( '+1 year', time() ) );
-
 				        // If we get a redirect URL
 				        if ( key_exists( 'redirect_url', $results ) )
 				        {
@@ -175,11 +156,11 @@ add_hook('ClientAreaPageLogin', 1, function( $vars ) {
 			        else
 			        {
 				        // Log our errors
-				        logActivity( 'WHMCS Local Api Error: ' . $results['error'] );
+				        logActivity( 'WHMCS Local API Error: ' . $results['error'] );
 			        }
 		        }
 
-			        // Catch an exception
+		        // Catch an exception
 		        catch ( Exception $exception )
 		        {
 			        // Log our errors
@@ -198,7 +179,9 @@ add_hook('ClientAreaPageLogin', 1, function( $vars ) {
         // Catch our exceptions if we cant create an OIDC client object
         catch ( OpenIDConnectClientException $exception )
         {
-            // Log our errors
+	        echo "<pre>"; print_r($exception); exit;
+
+	        // Log our errors
 	        logActivity( 'OIDC SSO Client Exception: ' . $exception->getMessage() );
         }
 
