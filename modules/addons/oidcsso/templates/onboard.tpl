@@ -2,7 +2,9 @@
     {include file="$template/includes/alert.tpl" type="error" errorshtml=$errormessage}
 {/if}
 
-{include file="$template/includes/alert.tpl" type="info" msg="We need a litte bit more information to create your account. Please fill in the fields below to finish account setup." textcenter=true}
+{if $infomessage}
+    {include file="$template/includes/alert.tpl" type="info" msg=$infomessage textcenter=true}
+{/if}
 
 <script type="text/javascript" src="{$BASE_PATH_JS}/StatesDropdown.js"></script>
 
@@ -13,7 +15,7 @@
     }
 </style>
 
-<form method="post" action="?action=submit" role="form">
+<form method="post" action="?action=submit&type={$actiontype}" role="form">
     <div class="row">
         <div class="col-sm-6">
             <div class="form-group">
@@ -32,7 +34,7 @@
             </div>
             <div class="form-group">
                 <label for="inputEmail" class="control-label">{$LANG.clientareaemail}</label>
-                <input type="email" name="email" id="inputEmail" value="{$clientemail}"disabled="disabled" class="form-control" />
+                <input type="email" name="email" id="inputEmail" value="{$clientemail}" disabled="disabled" class="form-control" />
             </div>
         </div>
     </div>

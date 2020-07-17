@@ -1,0 +1,38 @@
+{
+  "schema": "1.0",
+  "type": "whmcs-addons",
+  "name": "oidcsso",
+  "license": "proprietary",
+  "category": "signin",
+  "description": {
+    "name": "Single Sign-On with Okta",
+    "tagline": "Integrate WHMCS with Single Sign-On (SSO).",
+    "long": "Today's modern online business environment requires several client applications to effective run your company. If you use a Single Sign-On (SSO) solution or looking to connect your applications, this addon allows you to integrate WHMCS with Okta in less than 5 minutes.",
+    "features": [
+      "Plug and play with Okta",
+      "Pre-built authentication and authorization",
+      "Onboard all your new clients",
+      "Lightweight and easy to install"
+    ],
+    "requirements": [
+      "Plug and play with Okta",
+      "Pre-built authentication and authorization",
+      "Onboard all your new clients",
+      "Lightweight and easy to install"
+    ]
+  },
+  "logo": {
+    "filename": "logo.png"
+  },
+  "support": {
+    "homepage": "https:\/\/www.deschutesdesigngroup.com\/",
+    "email": "support@deschutesdesigngroup.com",
+    "support_url": "https:\/\/support.deschutesdesigngroup.com\/"
+  },
+  "authors": [
+    {
+      "name": "Deschutes Design Group LLC",
+      "homepage": "https:\/\/www.deschutesdesigngroup.com\/"
+    }
+  ]
+}

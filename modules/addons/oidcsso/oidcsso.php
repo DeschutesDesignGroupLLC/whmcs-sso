@@ -1,160 +1,90 @@
 <?php
 
-// Make sure we're not accessing directly
-if ( !defined( "WHMCS" ) ) {
-    die("This file cannot be accessed directly");
-}
-
 use WHMCS\Database\Capsule;
+
+// Make sure we're not accessing directly
+if (!defined("WHMCS")) {
+	die("This file cannot be accessed directly");
+}
 
 /**
  * Configuration Settings
- *
  * @return array
  */
 function oidcsso_config() {
 
-    // Return our config settings
-    return array(
-        "name" => "OIDC Single Sign-On Integration",
-        "description" => "A plug and play Single Sign-On (SSO) addon for WHMCS enabling your software to integrate with a OIDC equipped identity provider.",
-        "version" => "1.1",
-        "author" => "Deschutes Design Group LLC",
-        "language" => 'english',
-        "fields" => array(
-            "provider" => array(
-                "FriendlyName" => "Provider",
-                "Type" => "text",
-                "Size" => "25",
-                "Description" => "<br>Your OIDC provider domain. Your OIDC provider needs to conform to OIDC Auto Discovery.",
-            ),
-            "clientid" => array(
-                "FriendlyName" => "Client ID",
-                "Type" => "text",
-                "Size" => "25",
-                "Description" => "<br>Your application Client ID."
-            ),
-            "clientsecret" => array(
-                "FriendlyName" => "Client Secret",
-                "Type" => "password",
-                "Size" => "25",
-                "Description" => "<br>Your application Client Secret."
-            ),
-	        "scopes" => array(
-		        "FriendlyName" => "Scopes",
-		        "Type" => "text",
-		        "Size" => "25",
-		        "Description" => "<br>Your application scopes to request. Please separate each scope with a comma - no whitespace."
-	        ),
-	        "disablessl" => array(
-		        "FriendlyName" => "Disable SSL Verification",
-		        "Type" => "yesno",
-		        "Description" => "In some cases you may need to disable SSL security on your development systems. Note: This is not recommended on production systems."
-	        ),
-	        "redirectregistration" => array(
-		        "FriendlyName" => "Registration URL",
-		        "Type" => "text",
-		        "Size" => "25",
-		        "Description" => "<br>If provided, the client will be taken to this URL when attempting to create an account."
-	        ),
-	        "redirectpassword" => array(
-		        "FriendlyName" => "Change Password URL",
-		        "Type" => "text",
-		        "Size" => "25",
-		        "Description" => "<br>If provided, the client will be taken to this URL to update their password."
-	        ),
-	        "redirectlogout" => array(
-		        "FriendlyName" => "Logout URL",
-		        "Type" => "text",
-		        "Size" => "25",
-		        "Description" => "<br>If provided, the client will be taken to this URL when attempting to logout."
-	        ),
-	        "logoutidtoken" => array(
-		        "FriendlyName" => "Append ID Token",
-		        "Type" => "yesno",
-		        "Description" => "Attach the client's ID token to the end of the logout URL. You can specify the parameter below."
-	        ),
-	        "logoutidtokenparameter" => array(
-		        "FriendlyName" => "ID Token Parameter",
-		        "Type" => "text",
-		        "Size" => "25",
-		        "Description" => "<br>The name of the parameter the ID token will be set as within the logout URL."
-	        ),
-        )
-    );
+	// Return our config settings
+	return array("name" => "Single Sign-On with Okta", "description" => "A plug and play Single Sign-On (SSO) addon for WHMCS enabling your software to integrate with a OIDC equipped identity provider.", "version" => "1.1", "author" => "Deschutes Design Group LLC", "language" => 'english', "fields" => array("provider" => array("FriendlyName" => "Provider", "Type" => "text", "Size" => "25", "Description" => "<br>Your OIDC provider domain. This can be your Okta provided domain or a custom domain.",), "clientid" => array("FriendlyName" => "Client ID", "Type" => "text", "Size" => "25", "Description" => "<br>Your application Client ID."), "clientsecret" => array("FriendlyName" => "Client Secret", "Type" => "password", "Size" => "25", "Description" => "<br>Your application Client Secret."), "scopes" => array("FriendlyName" => "Scopes", "Type" => "text", "Size" => "25", "Description" => "<br>Your application scopes to request. Please separate each scope with a comma - no whitespace."), "disablessl" => array("FriendlyName" => "Disable SSL Verification", "Type" => "yesno", "Description" => "In some cases you may need to disable SSL security on your development systems. Note: This is not recommended on production systems."), "redirectregistration" => array("FriendlyName" => "Registration URL", "Type" => "text", "Size" => "25", "Description" => "<br>If provided, the client will be taken to this URL when attempting to create an account."), "redirectpassword" => array("FriendlyName" => "Change Password URL", "Type" => "text", "Size" => "25", "Description" => "<br>If provided, the client will be taken to this URL to update their password."), "redirectlogout" => array("FriendlyName" => "Logout URL", "Type" => "text", "Size" => "25", "Description" => "<br>If provided, the client will be taken to this URL when attempting to logout.")));
 }
 
 /**
  * Function to run when activating the addon
- *
  * @return string[]
  */
-function oidcsso_activate()
-{
+function oidcsso_activate() {
+
 	// Create our custom OIDC members table
-	try
-	{
+	try {
+
 		// Create table
-		Capsule::schema()->create(
-			'mod_oidcsso_members', function ($table) {
-				$table->unsignedBigInteger('client_id', false);
-				$table->mediumText('sub')->nullable()->default(NULL);
-				$table->mediumText('access_token')->nullable()->default(NULL);
-				$table->mediumText('id_token')->nullable()->default(NULL);
-				$table->smallInteger('onboarded')->default(0);
-				$table->primary('client_id');
-			}
-		);
+		Capsule::schema()->create('mod_oidcsso_members', function ($table) {
+
+			$table->unsignedBigInteger('client_id', FALSE);
+			$table->mediumText('sub')->nullable()->default(NULL);
+			$table->mediumText('access_token')->nullable()->default(NULL);
+			$table->mediumText('id_token')->nullable()->default(NULL);
+			$table->smallInteger('onboarded')->default(0);
+			$table->primary('client_id');
+		});
 
 		// Return our message
 		return [
+
 			// Supported values here include: success, error or info
-			'status' => 'success',
-			'description' => 'The addon has been successfully activated.'
+			'status' => 'success', 'description' => 'The addon has been successfully activated.'
 		];
 	}
 
 	// Catch our errors
-	catch ( \Exception $exception )
-	{
+	catch (\Exception $exception) {
+
 		// Return our message
 		return [
+
 			// Supported values here include: success, error or info
-			'status' => 'error',
-			'description' => "Unable to activate addon: {$exception->getMessage()}"
+			'status' => 'error', 'description' => "Unable to activate addon: {$exception->getMessage()}"
 		];
 	}
 }
 
 /**
  * Function to run when deactivating the addon
- *
  * @return string[]
  */
-function oidcsso_deactivate()
-{
+function oidcsso_deactivate() {
+
 	// Try and drop tables that were created when activating the addon
-	try
-	{
+	try {
+
 		// Drop our custom table
 		Capsule::schema()->dropIfExists('mod_oidcsso_members');
 
 		// Return our status
 		return [
+
 			// Supported values here include: success, error or info
-			'status' => 'success',
-			'description' => 'The addon has been successfully deactivated.'
+			'status' => 'success', 'description' => 'The addon has been successfully deactivated.'
 		];
 	}
 
 	// Catch our errors
-	catch ( \Exception $exception )
-	{
+	catch (\Exception $exception) {
+
 		// Return our status
 		return [
+
 			// Supported values here include: success, error or info
-			"status" => "error",
-			"description" => "Unable to deactivate addon: {$exception->getMessage()}",
+			"status" => "error", "description" => "Unable to deactivate addon: {$exception->getMessage()}"
 		];
 	}
 }
@@ -164,8 +94,8 @@ function oidcsso_deactivate()
  *
  * @param $vars
  */
-function oidcsso_upgrade($vars)
-{
+function oidcsso_upgrade($vars) {
+
 	// Get the currently installed version
 	$currentlyInstalledVersion = $vars['version'];
 
@@ -176,7 +106,7 @@ function oidcsso_upgrade($vars)
 		$schema = Capsule::schema();
 
 		// Add an onboarded column
-		$schema->table('mod_oidcsso_members', function($table) {
+		$schema->table('mod_oidcsso_members', function ($table) {
 			$table->smallInteger('onboarded')->default(0);
 		});
 	}
