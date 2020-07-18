@@ -14,7 +14,61 @@ if (!defined("WHMCS")) {
 function oidcsso_config() {
 
 	// Return our config settings
-	return array("name" => "Single Sign-On with Okta", "description" => "A plug and play Single Sign-On (SSO) addon for WHMCS enabling your software to integrate with a OIDC equipped identity provider.", "version" => "1.1", "author" => "Deschutes Design Group LLC", "language" => 'english', "fields" => array("provider" => array("FriendlyName" => "Provider", "Type" => "text", "Size" => "25", "Description" => "<br>Your OIDC provider domain. This can be your Okta provided domain or a custom domain.",), "clientid" => array("FriendlyName" => "Client ID", "Type" => "text", "Size" => "25", "Description" => "<br>Your application Client ID."), "clientsecret" => array("FriendlyName" => "Client Secret", "Type" => "password", "Size" => "25", "Description" => "<br>Your application Client Secret."), "scopes" => array("FriendlyName" => "Scopes", "Type" => "text", "Size" => "25", "Description" => "<br>Your application scopes to request. Please separate each scope with a comma - no whitespace."), "disablessl" => array("FriendlyName" => "Disable SSL Verification", "Type" => "yesno", "Description" => "In some cases you may need to disable SSL security on your development systems. Note: This is not recommended on production systems."), "redirectregistration" => array("FriendlyName" => "Registration URL", "Type" => "text", "Size" => "25", "Description" => "<br>If provided, the client will be taken to this URL when attempting to create an account."), "redirectpassword" => array("FriendlyName" => "Change Password URL", "Type" => "text", "Size" => "25", "Description" => "<br>If provided, the client will be taken to this URL to update their password."), "redirectlogout" => array("FriendlyName" => "Logout URL", "Type" => "text", "Size" => "25", "Description" => "<br>If provided, the client will be taken to this URL when attempting to logout.")));
+	return array(
+		"name" => "Single Sign-On with Okta",
+		"description" => "A plug and play Single Sign-On (SSO) addon for WHMCS enabling your software to integrate with a OIDC equipped identity provider.",
+		"version" => "1.2",
+		"author" => "Deschutes Design Group LLC",
+		"language" => 'english',
+		"fields" => array(
+			"provider" => array(
+				"FriendlyName" => "Provider",
+				"Type" => "text",
+				"Size" => "25",
+				"Description" => "<br>Your OIDC provider domain. This can be your Okta provided domain or a custom domain."
+			),
+			"clientid" => array(
+				"FriendlyName" => "Client ID",
+				"Type" => "text",
+				"Size" => "25",
+				"Description" => "<br>Your application Client ID."
+			),
+			"clientsecret" => array(
+				"FriendlyName" => "Client Secret",
+				"Type" => "password",
+				"Size" => "25",
+				"Description" => "<br>Your application Client Secret."
+			),
+			"scopes" => array(
+				"FriendlyName" => "Scopes",
+				"Type" => "text",
+				"Size" => "25",
+				"Description" => "<br>Your application scopes to request. Please separate each scope with a comma - no whitespace."
+			),
+			"disablessl" => array(
+				"FriendlyName" => "Disable SSL Verification",
+				"Type" => "yesno",
+				"Description" => "In some cases you may need to disable SSL security on your development systems. Note: This is not recommended on production systems."
+			),
+			"redirectregistration" => array(
+				"FriendlyName" => "Registration URL",
+				"Type" => "text",
+				"Size" => "25",
+				"Description" => "<br>If provided, the client will be taken to this URL when attempting to create an account."),
+			"redirectpassword" => array(
+				"FriendlyName" => "Change Password URL",
+				"Type" => "text",
+				"Size" => "25",
+				"Description" => "<br>If provided, the client will be taken to this URL to update their password."
+			),
+			"redirectlogout" => array(
+				"FriendlyName" => "Logout URL",
+				"Type" => "text",
+				"Size" => "25",
+				"Description" => "<br>If provided, the client will be taken to this URL when attempting to logout."
+			)
+		)
+	);
 }
 
 /**
