@@ -95,7 +95,7 @@ add_hook('ClientAreaPageLogin', 1, function ($vars) {
 			try {
 
 				// Query the database for a previous login links
-				$member = Capsule::table('mod_oidcsso_members')->where('sub', $token->sub)->first();
+				$member = Capsule::table('mod_okta_members')->where('sub', $token->sub)->first();
 
 				// We found a member, try and load the associated client
 				$client = Client::findOrFail($member->client_id);
@@ -112,7 +112,6 @@ add_hook('ClientAreaPageLogin', 1, function ($vars) {
 			if (!$client OR ($member AND !$member->onboarded)) {
 
 				// Create our onboarding data we'll pass in a cookie
-				// If we have a member but they havent onboarded, set the verify flag
 				$onboard = array(
 					'userinfo' => $userinfo,
 					'client' => $client ? $client->id : NULL,
@@ -135,7 +134,7 @@ add_hook('ClientAreaPageLogin', 1, function ($vars) {
 				try {
 
 					// Add our SSO link
-					Capsule::insert("INSERT INTO `mod_oidcsso_members` (client_id,sub,access_token,id_token) VALUES ('{$client->id}','{$token->sub}','{$oidc->getAccessToken()}','{$oidc->getIdToken()}') ON DUPLICATE KEY UPDATE sub = '{$token->sub}', access_token = '{$oidc->getAccessToken()}', id_token = '{$oidc->getIdToken()}'");
+					Capsule::insert("INSERT INTO `mod_okta_members` (client_id,sub,access_token,id_token) VALUES ('{$client->id}','{$token->sub}','{$oidc->getAccessToken()}','{$oidc->getIdToken()}') ON DUPLICATE KEY UPDATE sub = '{$token->sub}', access_token = '{$oidc->getAccessToken()}', id_token = '{$oidc->getIdToken()}'");
 
 					// Compose our SSO payload
 					$sso = array(
@@ -175,7 +174,7 @@ add_hook('ClientAreaPageLogin', 1, function ($vars) {
 					else {
 
 						// Log our errors
-						logActivity('WHMCS Local API Error: ' . $results['message']);
+						logActivity('Okta SSO: WHMCS Local API Error - ' . $results['message']);
 
 						// Forward to error page
 						header('Location: onboard.php?error=' . $exception->getMessage() );
@@ -186,7 +185,7 @@ add_hook('ClientAreaPageLogin', 1, function ($vars) {
 				catch (Exception $exception) {
 
 					// Log our errors
-					logActivity('WHMCS SSO Login Exception: ' . $exception->getMessage());
+					logActivity('Okta SSO: WHMCS Login Exception - ' . $exception->getMessage());
 
 					// Forward to error page
 					header('Location: onboard.php?error=' . $exception->getMessage() );
@@ -198,7 +197,7 @@ add_hook('ClientAreaPageLogin', 1, function ($vars) {
 		catch (ModelNotFoundException $exception) {
 
 			// Log our errors
-			logActivity('OIDC SSO Model Exception: ' . $exception->getMessage());
+			logActivity('Okta SSO: Model Exception - ' . $exception->getMessage());
 
 			// Forward to error page
 			header('Location: onboard.php?error=' . $exception->getMessage() );
@@ -208,7 +207,7 @@ add_hook('ClientAreaPageLogin', 1, function ($vars) {
 		catch (OpenIDConnectClientException $exception) {
 
 			// Log our errors
-			logActivity('OIDC SSO Client Exception: ' . $exception->getMessage());
+			logActivity('Okta SSO: Client Exception - ' . $exception->getMessage());
 
 			// Forward to error page
 			header('Location: onboard.php?error=' . $exception->getMessage() );
@@ -218,25 +217,11 @@ add_hook('ClientAreaPageLogin', 1, function ($vars) {
 		catch (Exception $exception) {
 
 			// Log our errors
-			logActivity('OIDC SSO Exception: ' . $exception->getMessage());
+			logActivity('Okta SSO: Exception - ' . $exception->getMessage());
 
 			// Forward to error page
 			header('Location: onboard.php?error=' . $exception->getMessage() );
 		}
-	}
-});
-
-/**
- * Client Area Services and Products
- */
-add_hook('ClientAreaPageProductsServices', 1, function ($vars) {
-
-	// Do we have a redirect url store
-	if (isset($_SESSION['oidc_redirect_url'])) {
-		// Redirect to the stored url
-		header("Location: {$_SESSION['oidc_redirect_url']}");
-		unset($_SESSION['oidc_redirect_url']);
-		exit;
 	}
 });
 
@@ -249,12 +234,11 @@ add_hook('ClientDelete', 1, function ($vars) {
 	try {
 
 		// Delete all SSO login links
-		Capsule::table('mod_oidcsso_members')->where('client_id', '=', $vars['userid'])->delete();
+		Capsule::table('mod_okta_members')->where('client_id', '=', $vars['userid'])->delete();
 	}
 
-		// Catch any exceptions
-	catch (\Exception $e) {
-	}
+	// Catch any exceptions
+	catch (\Exception $e) {}
 });
 
 /**
@@ -277,11 +261,11 @@ add_hook('ClientAreaPagePasswordReset', 1, function ($vars) {
 		}
 	}
 
-		// Catch any errors
+	// Catch any errors
 	catch (\Exception $exception) {
 
 		// Got Error
-		logActivity('OIDC SSO Reset Password Exception: ' . $exception->getMessage());
+		logActivity('Okta SSO: Reset Password Exception - ' . $exception->getMessage());
 	}
 });
 
@@ -305,11 +289,11 @@ add_hook('ClientAreaPageChangePassword', 1, function ($vars) {
 		}
 	}
 
-		// Catch any errors
+	// Catch any errors
 	catch (\Exception $exception) {
 
 		// Got Error
-		logActivity('OIDC SSO Change Password Exception: ' . $exception->getMessage());
+		logActivity('Okta SSO: Change Password Exception - ' . $exception->getMessage());
 	}
 });
 
@@ -319,11 +303,11 @@ add_hook('ClientAreaPageChangePassword', 1, function ($vars) {
 add_hook('ClientAreaPageLogout', 1, function ($vars) {
 
 	// If the logout redirect URL is set
-	if (isset($_SESSION['oidcsso_logout_redirect'])) {
+	if (isset($_SESSION['oktasso_logout_redirect'])) {
 
 		// Redirect
-		header("Location: {$_SESSION['oidcsso_logout_redirect']}");
-		unset($_SESSION['oidcsso_logout_redirect']);
+		header("Location: {$_SESSION['oktasso_logout_redirect']}");
+		unset($_SESSION['oktasso_logout_redirect']);
 		exit;
 	}
 });
@@ -343,7 +327,7 @@ add_hook('ClientLogout', 1, function ($vars) {
 		if (isset($redirect->value) and $redirect->value != NULL) {
 
 			// Get the member who is logging out
-			$member = Capsule::table('mod_oidcsso_members')->where('client_id', $vars['userid'])->first();
+			$member = Capsule::table('mod_okta_members')->where('client_id', $vars['userid'])->first();
 
 			// Construct the URL
 			$logout = $redirect->value;
@@ -356,7 +340,7 @@ add_hook('ClientLogout', 1, function ($vars) {
 			}
 
 			// Store the logout redirect
-			$_SESSION['oidcsso_logout_redirect'] = $logout;
+			$_SESSION['oktasso_logout_redirect'] = $logout;
 		}
 	}
 
@@ -364,7 +348,7 @@ add_hook('ClientLogout', 1, function ($vars) {
 	catch (\Exception $exception) {
 
 		// Got Error
-		logActivity('OIDC SSO Logout Exception: ' . $exception->getMessage());
+		logActivity('Okta SSO: Logout Exception - ' . $exception->getMessage());
 	}
 });
 
@@ -388,11 +372,11 @@ add_hook('ClientAreaPageRegister', 1, function ($vars) {
 		}
 	}
 
-		// Catch any errors
+	// Catch any errors
 	catch (\Exception $exception) {
 
 		// Got Error
-		logActivity('OIDC SSO Register Exception: ' . $exception->getMessage());
+		logActivity('Okta SSO: Register Exception - ' . $exception->getMessage());
 	}
 });
 

@@ -106,10 +106,14 @@ if ($action) {
 	if ($result['result'] == 'success' and $result['clientid']) {
 
 		// Set their onboard flag
-		Capsule::insert("INSERT INTO `mod_oidcsso_members` (client_id,sub,access_token,id_token,onboarded) VALUES ('{$result['clientid']}', '{$onboard->userinfo->sub}', '{$onboard->access_token}', '{$onboard->id_token}', 1) ON DUPLICATE KEY UPDATE sub = '{$onboard->userinfo->sub}', access_token = '{$onboard->access_token}', id_token = '{$onboard->id_token}', onboarded = 1");
+		Capsule::insert("INSERT INTO `mod_okta_members` (client_id,sub,access_token,id_token,onboarded) VALUES ('{$result['clientid']}', '{$onboard->userinfo->sub}', '{$onboard->access_token}', '{$onboard->id_token}', 1) ON DUPLICATE KEY UPDATE sub = '{$onboard->userinfo->sub}', access_token = '{$onboard->access_token}', id_token = '{$onboard->id_token}', onboarded = 1");
 
 		// Delete the onboarding cookie
 		Cookie::delete('OIDCOnboarding');
+
+		// Log the activity
+		$message = sprintf('Okta SSO: %s %s has finished %s', $data['firstname'], $data['lastname'], $_GET['type'] == 'update' ? 'verifying their account.' : 'onboarding.');
+		logActivity($message, $result['clientid']);
 
 		// Redirect to the client area page so we can officially log in
 		header('Location: clientarea.php');

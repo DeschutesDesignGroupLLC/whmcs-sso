@@ -81,7 +81,7 @@ function oidcsso_activate() {
 	try {
 
 		// Create table
-		Capsule::schema()->create('mod_oidcsso_members', function ($table) {
+		Capsule::schema()->create('mod_okta_members', function ($table) {
 
 			$table->unsignedBigInteger('client_id', FALSE);
 			$table->mediumText('sub')->nullable()->default(NULL);
@@ -121,7 +121,7 @@ function oidcsso_deactivate() {
 	try {
 
 		// Drop our custom table
-		Capsule::schema()->dropIfExists('mod_oidcsso_members');
+		Capsule::schema()->dropIfExists('mod_okta_members');
 
 		// Return our status
 		return [
@@ -150,18 +150,36 @@ function oidcsso_deactivate() {
  */
 function oidcsso_upgrade($vars) {
 
-	// Get the currently installed version
-	$currentlyInstalledVersion = $vars['version'];
+	// Try to perform these upgrades
+	try {
 
-	// Perform SQL schema changes required by the upgrade to version 1.1 of your module
-	if ($currentlyInstalledVersion < 1.1) {
+		// Get the currently installed version
+		$currentlyInstalledVersion = $vars['version'];
 
-		// Get the schema
-		$schema = Capsule::schema();
+		// Perform SQL schema changes required by the upgrade to version 1.1 of your module
+		if ($currentlyInstalledVersion < 1.1) {
 
-		// Add an onboarded column
-		$schema->table('mod_oidcsso_members', function ($table) {
-			$table->smallInteger('onboarded')->default(0);
-		});
+			// Get the schema
+			$schema = Capsule::schema();
+
+			// Add an onboarded column
+			$schema->table('mod_okta_members', function ($table) {
+				$table->smallInteger('onboarded')->default(0);
+			});
+		}
+
+		// Perform SQL schema changes required by the upgrade to version 1.2 of your module
+		if ($currentlyInstalledVersion < 1.2) {
+
+			// Rename the members table
+			Capsule::schema()->rename('mod_oidcsso_members', 'mod_okta_members');
+		}
+	}
+
+	// Catch our exceptions
+	catch (\Exception $exception) {
+
+		// Log the exception
+		logActivity('Okta SSO: Upgrade Exception - ' . $exception->getMessage());
 	}
 }
