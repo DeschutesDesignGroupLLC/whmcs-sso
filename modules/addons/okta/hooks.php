@@ -134,8 +134,8 @@ add_hook('ClientAreaPageLogin', 1, function ($vars) {
 			// We are not skipping onboarding
 			else {
 
-				// If we got a client and they havent onboarded yet or we didnt find one, and we are not skipping the process
-				if ((!$client OR ($member AND !$member->onboarded)) AND !$skiponboarding->value) {
+				// If we got a client and they havent onboarded, got a client and they didnt have a login link yet or we didnt find a client, and we are not skipping the process
+				if ((!$client OR ($member AND !$member->onboarded) OR ($client AND !$member)) AND !$skiponboarding->value) {
 
 					// Create our onboarding data we'll pass in a cookie
 					$onboard = array(
