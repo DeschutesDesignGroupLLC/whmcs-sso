@@ -1,6 +1,6 @@
 {
-  "name": "deschutesdesigngroupllc/oidc-sso-whmcs",
-  "description": "A plug and play Single Sign-On (SSO) application for WHMCS powered by OIDC.",
+  "name": "deschutesdesigngroupllc/whmcs-sso-okta",
+  "description": "A plug and play Single Sign-On (SSO) addon for WHMCS enabling your software to sign-in with Okta.",
   "keywords": [
     "whmcs",
     "sso",
@@ -16,7 +16,7 @@
   ],
   "homepage": "https://www.deschutesdesigngroup.com/",
   "config": {
-    "vendor-dir": "modules/addons/oidcsso/vendor"
+    "vendor-dir": "modules/addons/okta/vendor"
   },
   "require": {
     "deschutesdesigngroupllc/openid-connect-php":"dev-master"

@@ -1,11 +1,11 @@
 {
   "schema": "1.2",
   "type": "whmcs-addons",
-  "name": "oidcsso",
+  "name": "okta",
   "license": "proprietary",
   "category": "signin",
   "description": {
-    "name": "Single Sign-On with Okta",
+    "name": "Single Sign-On (SSO) with Okta",
     "tagline": "Integrate WHMCS with Single Sign-On (SSO).",
     "long": "Today's modern online business environment requires several client applications to effective run your company. If you use a Single Sign-On (SSO) solution or looking to connect your applications, this addon allows you to integrate WHMCS with Okta in less than 5 minutes.",
     "features": [

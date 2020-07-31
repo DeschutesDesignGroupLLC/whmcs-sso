@@ -36,14 +36,14 @@ if ($_GET['error']) {
 	$ca->assign('errormessage', $_GET['error']);
 
 	// Assign the page template
-	$ca->setTemplate('/modules/addons/oidcsso/templates/error.tpl');
+	$ca->setTemplate('/modules/addons/okta/templates/error.tpl');
 
 	// Output the page
 	$ca->output();
 }
 
 // Perform our cookie checks
-if ($cookie = Cookie::get('OIDCOnboarding')) {
+if ($cookie = Cookie::get('OktaOnboarding')) {
 
 	// Decode the cookie
 	$onboard = json_decode(base64_decode($cookie));
@@ -109,7 +109,7 @@ if ($action) {
 		Capsule::insert("INSERT INTO `mod_okta_members` (client_id,sub,access_token,id_token,onboarded) VALUES ('{$result['clientid']}', '{$onboard->userinfo->sub}', '{$onboard->access_token}', '{$onboard->id_token}', 1) ON DUPLICATE KEY UPDATE sub = '{$onboard->userinfo->sub}', access_token = '{$onboard->access_token}', id_token = '{$onboard->id_token}', onboarded = 1");
 
 		// Delete the onboarding cookie
-		Cookie::delete('OIDCOnboarding');
+		Cookie::delete('OktaOnboarding');
 
 		// Log the activity
 		$message = sprintf('Okta SSO: %s %s has finished %s', $data['firstname'], $data['lastname'], $_GET['type'] == 'update' ? 'verifying their account.' : 'onboarding.');
@@ -193,7 +193,7 @@ else {
 }
 
 // Set the template
-$ca->setTemplate('/modules/addons/oidcsso/templates/onboard.tpl');
+$ca->setTemplate('/modules/addons/okta/templates/onboard.tpl');
 
 // Output the page
 $ca->output();

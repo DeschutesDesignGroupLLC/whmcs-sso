@@ -40,12 +40,12 @@ add_hook('ClientAreaPageLogin', 1, function ($vars) {
 		try {
 
 			// Get our domain
-			$provider = Setting::where('module', 'oidcsso')->where('setting', 'provider')->firstOrFail();
-			$clientid = Setting::where('module', 'oidcsso')->where('setting', 'clientid')->firstOrFail();
-			$clientsecret = Setting::where('module', 'oidcsso')->where('setting', 'clientsecret')->firstOrFail();
-			$scopes = Setting::where('module', 'oidcsso')->where('setting', 'scopes')->firstOrFail();
-			$disablessl = Setting::where('module', 'oidcsso')->where('setting', 'disablessl')->firstOrFail();
-			$skiponboarding = Setting::where('module', 'oidcsso')->where('setting', 'skiponboarding')->firstOrFail();
+			$provider = Setting::where('module', 'okta')->where('setting', 'provider')->firstOrFail();
+			$clientid = Setting::where('module', 'okta')->where('setting', 'clientid')->firstOrFail();
+			$clientsecret = Setting::where('module', 'okta')->where('setting', 'clientsecret')->firstOrFail();
+			$scopes = Setting::where('module', 'okta')->where('setting', 'scopes')->firstOrFail();
+			$disablessl = Setting::where('module', 'okta')->where('setting', 'disablessl')->firstOrFail();
+			$skiponboarding = Setting::where('module', 'okta')->where('setting', 'skiponboarding')->firstOrFail();
 
 			// Get scopes
 			$scopes = explode(',', $scopes->value);
@@ -78,7 +78,7 @@ add_hook('ClientAreaPageLogin', 1, function ($vars) {
 			}
 
 			// Log our auth call
-			logModuleCall('oidcsso', 'authorize', array('provider' => $oidc->getProviderURL(), 'client_id' => $oidc->getClientID(), 'redirect_url' => $oidc->getRedirectURL(), 'scope' => $oidc->getScopes()), array('access_token' => $oidc->getAccessToken(), 'id_token' => $oidc->getIdToken()), NULL, NULL);
+			logModuleCall('okta', 'authorize', array('provider' => $oidc->getProviderURL(), 'client_id' => $oidc->getClientID(), 'redirect_url' => $oidc->getRedirectURL(), 'scope' => $oidc->getScopes()), array('access_token' => $oidc->getAccessToken(), 'id_token' => $oidc->getIdToken()), NULL, NULL);
 
 			// Start auth process
 			$oidc->authenticate();
@@ -90,7 +90,7 @@ add_hook('ClientAreaPageLogin', 1, function ($vars) {
 			$userinfo = $oidc->requestUserInfo();
 
 			// Log our auth call
-			logModuleCall('oidcsso', 'userinfo', array('provider' => $oidc->getProviderURL(), 'access_token' => $oidc->getAccessToken(), 'client_id' => $oidc->getClientID()), array('id_token' => $oidc->getIdToken(), 'user_info' => $userinfo), NULL, NULL);
+			logModuleCall('okta', 'userinfo', array('provider' => $oidc->getProviderURL(), 'access_token' => $oidc->getAccessToken(), 'client_id' => $oidc->getClientID()), array('id_token' => $oidc->getIdToken(), 'user_info' => $userinfo), NULL, NULL);
 
 			// Try and see if this user has already logged in
 			try {
@@ -146,7 +146,7 @@ add_hook('ClientAreaPageLogin', 1, function ($vars) {
 					);
 
 					// Store the users email address
-					Cookie::set('OIDCOnboarding', base64_encode(json_encode($onboard)), strtotime('+1 hour', time()));
+					Cookie::set('OktaOnboarding', base64_encode(json_encode($onboard)), strtotime('+1 hour', time()));
 
 					// Redirect to change password
 					header("Location: onboard.php");
@@ -169,21 +169,21 @@ add_hook('ClientAreaPageLogin', 1, function ($vars) {
 						'destination' => 'clientarea:services');
 
 					// If we have a redirect URL set
-					if (Cookie::get('OIDCReferer')) {
+					if (Cookie::get('OktaReferer')) {
 
 						// Set our destination to custom
 						$sso['destination'] = 'sso:custom_redirect';
-						$sso['sso_redirect_path'] = base64_decode(Cookie::get('OIDCReferer'));
+						$sso['sso_redirect_path'] = base64_decode(Cookie::get('OktaReferer'));
 
 						// Remove the cookie
-						Cookie::delete('OIDCReferer');
+						Cookie::delete('OktaReferer');
 					}
 
 					// Create an SSO login
 					$results = localAPI('CreateSsoToken', $sso, 'Jon Erickson');
 
 					// Log our API call
-					logModuleCall('oidcsso', 'CreateSsoToken', $sso, $results, NULL, NULL);
+					logModuleCall('okta', 'CreateSsoToken', $sso, $results, NULL, NULL);
 
 					// If the result was successful
 					if ($results['result'] == 'success') {
@@ -277,7 +277,7 @@ add_hook('ClientAreaPagePasswordReset', 1, function ($vars) {
 	try {
 
 		// Get our redirect URL
-		$redirect = Setting::where('module', 'oidcsso')->where('setting', 'redirectpassword')->firstOrFail();
+		$redirect = Setting::where('module', 'okta')->where('setting', 'redirectpassword')->firstOrFail();
 
 		// If we have a valid URL
 		if (isset($redirect->value) and $redirect->value != NULL) {
@@ -305,7 +305,7 @@ add_hook('ClientAreaPageChangePassword', 1, function ($vars) {
 	try {
 
 		// Get our redirect URL
-		$redirect = Setting::where('module', 'oidcsso')->where('setting', 'redirectpassword')->firstOrFail();
+		$redirect = Setting::where('module', 'okta')->where('setting', 'redirectpassword')->firstOrFail();
 
 		// If we have a valid URL
 		if (isset($redirect->value) and $redirect->value != NULL) {
@@ -348,7 +348,7 @@ add_hook('ClientLogout', 1, function ($vars) {
 	try {
 
 		// Get our logout URL
-		$redirect = Setting::where('module', 'oidcsso')->where('setting', 'redirectlogout')->firstOrFail();
+		$redirect = Setting::where('module', 'okta')->where('setting', 'redirectlogout')->firstOrFail();
 
 		// If we have a valid URL
 		if (isset($redirect->value) and $redirect->value != NULL) {
@@ -388,7 +388,7 @@ add_hook('ClientAreaPageRegister', 1, function ($vars) {
 	try {
 
 		// Get our redirect URL
-		$redirect = Setting::where('module', 'oidcsso')->where('setting', 'redirectregistration')->firstOrFail();
+		$redirect = Setting::where('module', 'okta')->where('setting', 'redirectregistration')->firstOrFail();
 
 		// If we have a valid URL
 		if (isset($redirect->value) and $redirect->value != NULL) {
@@ -419,7 +419,7 @@ add_hook("ClientAreaPageCart", 1, function ($vars) {
 		if (!Menu::context('client')) {
 
 			// Store our redirect url
-			Cookie::set('OIDCRedirectUrl', base64_encode('cart.php'), strtotime('+1 hour', time()));
+			Cookie::set('OktaRedirectUrl', base64_encode('cart.php'), strtotime('+1 hour', time()));
 
 			// Redirect to login
 			header("Location: {$vars['systemurl']}clientarea.php");
@@ -437,7 +437,7 @@ add_hook("ClientAreaPageAffiliates", 1, function ($vars) {
 	if (!Menu::context('client')) {
 
 		// Set a redirect URL and proceed to login
-		Cookie::set('OIDCRedirectUrl', base64_encode('affiliates.php'), strtotime('+1 hour', time()));
+		Cookie::set('OktaRedirectUrl', base64_encode('affiliates.php'), strtotime('+1 hour', time()));
 	}
 });
 
@@ -458,10 +458,10 @@ function getReferer() {
 	$incoming = parse_url($_SERVER['HTTP_REFERER'], PHP_URL_HOST);
 
 	// If we do have a cookie redirect
-	if (Cookie::get('OIDCRedirectUrl')) {
+	if (Cookie::get('OktaRedirectUrl')) {
 
 		// Set our referer to that
-		$referer = base64_decode(Cookie::get('OIDCRedirectUrl'));
+		$referer = base64_decode(Cookie::get('OktaRedirectUrl'));
 	}
 
 	// If our referrer is from our website
@@ -479,10 +479,10 @@ function getReferer() {
 	if ($referer) {
 
 		// Save it in a cookie
-		Cookie::set('OIDCReferer', base64_encode($referer));
+		Cookie::set('OktaReferer', base64_encode($referer));
 
 		// Remove the redirect URL
-		Cookie::delete('OIDCRedirectUrl');
+		Cookie::delete('OktaRedirectUrl');
 	}
 
 	// Return the referer

@@ -11,12 +11,12 @@ if (!defined("WHMCS")) {
  * Configuration Settings
  * @return array
  */
-function oidcsso_config() {
+function okta_config() {
 
 	// Return our config settings
 	return array(
 		"name" => "Single Sign-On with Okta",
-		"description" => "A plug and play Single Sign-On (SSO) addon for WHMCS enabling your software to integrate with a OIDC equipped identity provider.",
+		"description" => "A plug and play Single Sign-On (SSO) addon for WHMCS enabling your software to sign-in with Okta.",
 		"version" => "1.2",
 		"author" => "Deschutes Design Group LLC",
 		"language" => 'english',
@@ -82,9 +82,9 @@ function oidcsso_config() {
  * Function to run when activating the addon
  * @return string[]
  */
-function oidcsso_activate() {
+function okta_activate() {
 
-	// Create our custom OIDC members table
+	// Create our custom Okta members table
 	try {
 
 		// Create table
@@ -122,7 +122,7 @@ function oidcsso_activate() {
  * Function to run when deactivating the addon
  * @return string[]
  */
-function oidcsso_deactivate() {
+function okta_deactivate() {
 
 	// Try and drop tables that were created when activating the addon
 	try {
@@ -155,7 +155,7 @@ function oidcsso_deactivate() {
  *
  * @param $vars
  */
-function oidcsso_upgrade($vars) {
+function okta_upgrade($vars) {
 
 	// Try to perform these upgrades
 	try {
@@ -179,7 +179,7 @@ function oidcsso_upgrade($vars) {
 		if ($currentlyInstalledVersion < 1.2) {
 
 			// Rename the members table
-			Capsule::schema()->rename('mod_oidcsso_members', 'mod_okta_members');
+			Capsule::schema()->rename('mod_okta_members', 'mod_okta_members');
 		}
 	}
 
