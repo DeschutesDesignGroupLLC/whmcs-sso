@@ -442,6 +442,23 @@ add_hook("ClientAreaPageAffiliates", 1, function ($vars) {
 });
 
 /**
+ * Client Actions List
+ */
+add_hook('AdminAreaClientSummaryActionLinks', 1, function ($vars) {
+
+	// Compose our action URL
+	$url = 'addonmodules.php?module=okta&action=unlink&userid=' . $vars['userid'];
+
+	// Return the action link
+    return [
+        '<a style="color:#CC0000;" href="' . $url . '">
+			<img src="images/icons/delete.png" border="0" align="absmiddle">
+			Unlink Okta User Account
+		</a>',
+    ];
+});
+
+/**
  * Referer
  *
  * Finds and sets the referer as a cookie which allos the addon
