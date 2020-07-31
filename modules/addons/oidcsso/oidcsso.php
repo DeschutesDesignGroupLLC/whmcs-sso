@@ -25,7 +25,8 @@ function oidcsso_config() {
 				"FriendlyName" => "Provider",
 				"Type" => "text",
 				"Size" => "25",
-				"Description" => "<br>Your OIDC provider domain. This can be your Okta provided domain or a custom domain."
+				"Placeholder" => 'https://yourdomain.okta.com/oauth2/default',
+				"Description" => "<br>Your authorization server domain. This can be your Okta provided domain or a custom domain."
 			),
 			"clientid" => array(
 				"FriendlyName" => "Client ID",
@@ -43,7 +44,8 @@ function oidcsso_config() {
 				"FriendlyName" => "Scopes",
 				"Type" => "text",
 				"Size" => "25",
-				"Description" => "<br>Your application scopes to request. Please separate each scope with a comma - no whitespace."
+				"Placeholder" => "profile,email",
+				"Description" => "<br>Your application scopes to request. Please separate each scope with a comma - no whitespace. (The request will include 'openid' be default)."
 			),
 			"disablessl" => array(
 				"FriendlyName" => "Disable SSL Verification",
@@ -66,6 +68,11 @@ function oidcsso_config() {
 				"Type" => "text",
 				"Size" => "25",
 				"Description" => "<br>If provided, the client will be taken to this URL when attempting to logout."
+			),
+			"skiponboarding" => array(
+				"FriendlyName" => "Skip Onboarding Process",
+				"Type" => "yesno",
+				"Description" => "If selected, a client account will automatically be created when signing in for the first time. If unselected, a client will first be forced to provide all their client details before the account is created."
 			)
 		)
 	);

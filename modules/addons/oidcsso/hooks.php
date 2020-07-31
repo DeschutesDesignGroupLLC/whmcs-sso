@@ -45,6 +45,7 @@ add_hook('ClientAreaPageLogin', 1, function ($vars) {
 			$clientsecret = Setting::where('module', 'oidcsso')->where('setting', 'clientsecret')->firstOrFail();
 			$scopes = Setting::where('module', 'oidcsso')->where('setting', 'scopes')->firstOrFail();
 			$disablessl = Setting::where('module', 'oidcsso')->where('setting', 'disablessl')->firstOrFail();
+			$skiponboarding = Setting::where('module', 'oidcsso')->where('setting', 'skiponboarding')->firstOrFail();
 
 			// Get scopes
 			$scopes = explode(',', $scopes->value);
@@ -69,7 +70,7 @@ add_hook('ClientAreaPageLogin', 1, function ($vars) {
 			$oidc->setUrlEncoding(PHP_QUERY_RFC1738);
 
 			// If disable ssl verification
-			if ($disablessl) {
+			if ($disablessl->value) {
 
 				// Disable SSL
 				$oidc->setVerifyHost(FALSE);
@@ -108,23 +109,49 @@ add_hook('ClientAreaPageLogin', 1, function ($vars) {
 				$client = Client::where('email', $userinfo->email)->get()->first();
 			}
 
-			// If we got a client and they havent onboarded yet or we didnt find one
-			if (!$client OR ($member AND !$member->onboarded)) {
+			// If we are skipping onboarding and we don't have a client
+			if ($skiponboarding->value AND !$client) {
 
-				// Create our onboarding data we'll pass in a cookie
-				$onboard = array(
-					'userinfo' => $userinfo,
-					'client' => $client ? $client->id : NULL,
-					'access_token' => $oidc->getAccessToken(),
-					'id_token' => $oidc->getIdToken()
-				);
+				// Create a client and sign them in
+				$client = Client::firstOrNew([ 'email' => $userinfo->email ]);
 
-				// Store the users email address
-				Cookie::set('OIDCOnboarding', base64_encode(json_encode($onboard)), strtotime('+1 hour', time()));
+				// If the user did not exist
+				if ( !$client->exists )
+				{
+					// If the client did not exist
+					$client->email = $userinfo->email;
+					$client->firstname = $userinfo->given_name ? $userinfo->given_name : 'New';
+					$client->lastname = $userinfo->family_name ? $userinfo->family_name : 'User';
+					$client->created_at = time();
+					$client->updated_at = time();
+					$client->datecreated = date("Y-m-d", time());
+					$client->email_verified = 1;
+					$client->allow_sso = 1;
+					$client->save();
+				}
+			}
 
-				// Redirect to change password
-				header("Location: onboard.php");
-				exit;
+			// We are not skipping onboarding
+			else {
+
+				// If we got a client and they havent onboarded yet or we didnt find one, and we are not skipping the process
+				if ((!$client OR ($member AND !$member->onboarded)) AND !$skiponboarding->value) {
+
+					// Create our onboarding data we'll pass in a cookie
+					$onboard = array(
+						'userinfo' => $userinfo,
+						'client' => $client ? $client->id : NULL,
+						'access_token' => $oidc->getAccessToken(),
+						'id_token' => $oidc->getIdToken()
+					);
+
+					// Store the users email address
+					Cookie::set('OIDCOnboarding', base64_encode(json_encode($onboard)), strtotime('+1 hour', time()));
+
+					// Redirect to change password
+					header("Location: onboard.php");
+					exit;
+				}
 			}
 
 			// If we get a client
