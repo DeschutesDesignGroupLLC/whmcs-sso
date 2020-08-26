@@ -8,6 +8,9 @@ if (!defined("WHMCS")) {
 // Include our dependencies
 include_once(__DIR__ . DIRECTORY_SEPARATOR . 'vendor' . DIRECTORY_SEPARATOR . 'autoload.php');
 
+use League\Uri\Uri;
+use League\Uri\Components\Query;
+use League\Uri\UriModifier;
 use Jumbojett\OpenIDConnectClient;
 use Jumbojett\OpenIDConnectClientException;
 use WHMCS\Module\Addon\Setting;
@@ -362,14 +365,15 @@ add_hook('ClientLogout', 1, function ($vars) {
 			// Get the member who is logging out
 			$member = Capsule::table('mod_okta_members')->where('client_id', $vars['userid'])->first();
 
-			// Construct the URL
-			$logout = $redirect->value;
+			// Compose logout URL
+			$logout = Uri::createFromString($redirect->value);
 
 			// If we are appending the token
 			if ($member->id_token) {
 
-				// Attach the ID token
-				$logout = rtrim($logout, "/") . http_build_query(['id_token_hint' => $member->id_token], '', '&');
+				// Append our ID Token
+				$token = Query::createFromRFC3986("id_token_hint={$member->id_token}");
+				$logout = UriModifier::appendQuery($logout, $token);
 			}
 
 			// Store the logout redirect
@@ -461,17 +465,21 @@ add_hook('AdminAreaClientSummaryActionLinks', 1, function ($vars) {
  */
 function setReferer() {
 
-	// Try to get a referrer
-	$incoming = parse_url($_SERVER['HTTP_REFERER'], PHP_URL_HOST);
+	// Get our incoming and current URIs
+	$incoming = Uri::createFromString($_SERVER['HTTP_REFERER']);
+	$current = Uri::createFromServer($_SERVER);
 
-	// If we do have a cookie redirect
-	if ((substr($incoming, 0 - strlen($_SERVER[HTTP_HOST])) == $_SERVER[HTTP_HOST])) {
+	// If the referer is internal, we don't want to redirect back to an external host
+	if ($incoming->getHost() == $current->getHost()) {
+
+		// Create the current path + query
+		$request = Uri::createFromString()->withPath($current->getPath())->withQuery($current->getQuery())->__toString();
 
 		// If we have a script name
-		if ($_SERVER[REQUEST_URI] != '/clientarea.php?action=services' AND $_SERVER[REQUEST_URI] != 'cart.php?a=view') {
+		if ($request != '/clientarea.php?action=services' AND $request != 'cart.php?a=view') {
 
 			// Set our referrer to the request URI
-			Cookie::set('OktaRedirectUrl', trim($_SERVER[REQUEST_URI], '/'), strtotime('+1 hour', time()));
+			Cookie::set('OktaRedirectUrl', trim($request, '/'), strtotime('+1 hour', time()));
 		}
 	}
 }

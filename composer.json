@@ -19,12 +19,8 @@
     "vendor-dir": "modules/addons/okta/vendor"
   },
   "require": {
-    "deschutesdesigngroupllc/openid-connect-php":"dev-master"
-  },
-  "repositories": [
-    {
-      "type": "vcs",
-      "url": "https://github.com/DeschutesDesignGroupLLC/OpenID-Connect-PHP"
-    }
-  ]
+    "jumbojett/openid-connect-php": "^v0.9.0",
+    "league/uri": "^6.3.0",
+    "league/uri-components": "^2.2.1"
+  }
 }
