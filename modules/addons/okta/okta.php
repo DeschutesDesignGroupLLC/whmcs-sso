@@ -17,7 +17,7 @@ function okta_config() {
 	return array(
 		"name" => "Single Sign-On with Okta",
 		"description" => "A plug and play Single Sign-On (SSO) addon for WHMCS enabling your software to sign-in with Okta.",
-		"version" => "1.2",
+		"version" => "1.0",
 		"author" => "Deschutes Design Group LLC",
 		"language" => 'english',
 		"fields" => array(
@@ -162,25 +162,6 @@ function okta_upgrade($vars) {
 
 		// Get the currently installed version
 		$currentlyInstalledVersion = $vars['version'];
-
-		// Perform SQL schema changes required by the upgrade to version 1.1 of your module
-		if ($currentlyInstalledVersion < 1.1) {
-
-			// Get the schema
-			$schema = Capsule::schema();
-
-			// Add an onboarded column
-			$schema->table('mod_okta_members', function ($table) {
-				$table->smallInteger('onboarded')->default(0);
-			});
-		}
-
-		// Perform SQL schema changes required by the upgrade to version 1.2 of your module
-		if ($currentlyInstalledVersion < 1.2) {
-
-			// Rename the members table
-			Capsule::schema()->rename('mod_okta_members', 'mod_okta_members');
-		}
 	}
 
 	// Catch our exceptions
@@ -198,7 +179,7 @@ function okta_upgrade($vars) {
  */
 function okta_output($vars) {
 
-	// If we have an unline action
+	// If we have an unlink action
 	if ($_GET['action'] === 'unlink') {
 
 		// If we have clients to unlink
