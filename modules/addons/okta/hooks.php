@@ -29,6 +29,23 @@ HTML;
 });
 
 /**
+ * Client Area Services
+ */
+add_hook('ClientAreaPageProductsServices', 1, function ($vars) {
+
+	// If we have a redirect URL set
+	if ($referer = Cookie::get('OktaRedirectUrl')) {
+
+		// Remove the cookie
+		Cookie::delete('OktaRedirectUrl');
+
+		// Redirect to the referer
+		header("Location: {$referer}");
+		exit;
+	}
+});
+
+/**
  * Client Area Login Hook
  */
 add_hook('ClientAreaPageLogin', 1, function ($vars) {
@@ -56,8 +73,8 @@ add_hook('ClientAreaPageLogin', 1, function ($vars) {
 			// If this is the beginning of the authorization request and we don't have an authorization code yet
 			if (!$_REQUEST['code']) {
 
-				// Get our referrer
-				getReferer();
+				// Set our referrer for redirection
+				setReferer();
 			}
 
 			// Set our redirect URL
@@ -167,17 +184,6 @@ add_hook('ClientAreaPageLogin', 1, function ($vars) {
 					$sso = array(
 						'client_id' => $client->id,
 						'destination' => 'clientarea:services');
-
-					// If we have a redirect URL set
-					if (Cookie::get('OktaReferer')) {
-
-						// Set our destination to custom
-						$sso['destination'] = 'sso:custom_redirect';
-						$sso['sso_redirect_path'] = base64_decode(Cookie::get('OktaReferer'));
-
-						// Remove the cookie
-						Cookie::delete('OktaReferer');
-					}
 
 					// Create an SSO login
 					$results = localAPI('CreateSsoToken', $sso, 'Jon Erickson');
@@ -419,25 +425,12 @@ add_hook("ClientAreaPageCart", 1, function ($vars) {
 		if (!Menu::context('client')) {
 
 			// Store our redirect url
-			Cookie::set('OktaRedirectUrl', base64_encode('cart.php'), strtotime('+1 hour', time()));
+			Cookie::set('OktaRedirectUrl', 'cart.php?a=view', strtotime('+1 hour', time()));
 
 			// Redirect to login
-			header("Location: {$vars['systemurl']}clientarea.php");
+			header('Location: clientarea.php?action=services');
 			exit;
 		}
-	}
-});
-
-/**
- * Affiliate Page
- */
-add_hook("ClientAreaPageAffiliates", 1, function ($vars) {
-
-	// If no one logged in
-	if (!Menu::context('client')) {
-
-		// Set a redirect URL and proceed to login
-		Cookie::set('OktaRedirectUrl', base64_encode('affiliates.php'), strtotime('+1 hour', time()));
 	}
 });
 
@@ -451,7 +444,7 @@ add_hook('AdminAreaClientSummaryActionLinks', 1, function ($vars) {
 
 	// Return the action link
     return [
-        '<a style="color:#CC0000;" href="' . $url . '">
+        '<a style="color:#cc0000;" href="' . $url . '">
 			<img src="images/icons/delete.png" border="0" align="absmiddle">
 			Unlink Okta User Account
 		</a>',
@@ -461,47 +454,24 @@ add_hook('AdminAreaClientSummaryActionLinks', 1, function ($vars) {
 /**
  * Referer
  *
- * Finds and sets the referer as a cookie which allos the addon
+ * Finds and sets the referer as a cookie which allows the addon
  * to redirect a user back to page once they are authenticated.
  *
  * @return false|string|null
  */
-function getReferer() {
-
-	// Set our referer to empty
-	$referer = NULL;
+function setReferer() {
 
 	// Try to get a referrer
 	$incoming = parse_url($_SERVER['HTTP_REFERER'], PHP_URL_HOST);
 
 	// If we do have a cookie redirect
-	if (Cookie::get('OktaRedirectUrl')) {
-
-		// Set our referer to that
-		$referer = base64_decode(Cookie::get('OktaRedirectUrl'));
-	}
-
-	// If our referrer is from our website
-	else if (substr($incoming, 0 - strlen($_SERVER[HTTP_HOST])) == $_SERVER[HTTP_HOST]) {
+	if ((substr($incoming, 0 - strlen($_SERVER[HTTP_HOST])) == $_SERVER[HTTP_HOST])) {
 
 		// If we have a script name
-		if ($_SERVER[REQUEST_URI] and $_SERVER[REQUEST_URI] != '/clientarea.php') {
+		if ($_SERVER[REQUEST_URI] != '/clientarea.php?action=services' AND $_SERVER[REQUEST_URI] != 'cart.php?a=view') {
 
 			// Set our referrer to the request URI
-			$referer = trim($_SERVER[REQUEST_URI], '/');
+			Cookie::set('OktaRedirectUrl', trim($_SERVER[REQUEST_URI], '/'), strtotime('+1 hour', time()));
 		}
 	}
-
-	// If we have a referrer
-	if ($referer) {
-
-		// Save it in a cookie
-		Cookie::set('OktaReferer', base64_encode($referer));
-
-		// Remove the redirect URL
-		Cookie::delete('OktaRedirectUrl');
-	}
-
-	// Return the referer
-	return $referer;
 }

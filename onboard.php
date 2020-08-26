@@ -116,7 +116,7 @@ if ($action) {
 		logActivity($message, $result['clientid']);
 
 		// Redirect to the client area page so we can officially log in
-		header('Location: clientarea.php');
+		header('Location: clientarea.php?action=services');
 		exit;
 	}
 
