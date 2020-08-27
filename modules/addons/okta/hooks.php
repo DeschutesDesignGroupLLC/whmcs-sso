@@ -136,8 +136,8 @@ add_hook('ClientAreaPageLogin', 1, function ($vars) {
 				$client = Client::firstOrNew([ 'email' => $userinfo->email ]);
 
 				// If the user did not exist
-				if ( !$client->exists )
-				{
+				if ( !$client->exists ) {
+
 					// If the client did not exist
 					$client->email = $userinfo->email;
 					$client->firstname = $userinfo->given_name ? $userinfo->given_name : 'New';
@@ -429,13 +429,18 @@ add_hook("ClientAreaPageCart", 1, function ($vars) {
 		if (!Menu::context('client')) {
 
 			// Create our redirect URL
-			$cart = Uri::createFromString()->withPath('cart.php')->withQuery(Query::createFromParams(['a' => 'checkout', 'e' => 'false']))->__toString();
+			$cart = Uri::createFromString()->withPath('cart.php')->withQuery(Query::createFromParams([
+				'a' => 'checkout',
+				'e' => 'false'
+			]))->__toString();
 
 			// Store it in a cookie
 			Cookie::set('OktaRedirectUrl', $cart, strtotime('+1 hour', time()));
 
 			// Create our client services URL
-			$clientservices = Uri::createFromString()->withPath('clientarea.php')->withQuery(Query::createFromParams(['action' => 'services']))->__toString();
+			$clientservices = Uri::createFromString()->withPath('clientarea.php')->withQuery(Query::createFromParams([
+				'action' => 'services'
+			]))->__toString();
 
 			// Redirect to login
 			header("Location: {$clientservices}");
@@ -449,8 +454,12 @@ add_hook("ClientAreaPageCart", 1, function ($vars) {
  */
 add_hook('AdminAreaClientSummaryActionLinks', 1, function ($vars) {
 
-	// Compose our action URL
-	$url = 'addonmodules.php?module=okta&action=unlink&userid=' . $vars['userid'];
+	// Create our URL
+	$url = Uri::createFromString()->withPath('addonmodules.php')->withQuery(Query::createFromParams([
+		'module' => 'okta',
+		'action' => 'unlink',
+		'userid' => $vars['userid']
+	]))->__toString();
 
 	// Return the action link
     return [
@@ -502,7 +511,9 @@ function setRedirectUrl() {
 function showError($exception) {
 
 	// Compose our error URL
-	$error = Uri::createFromString()->withPath('onboard.php')->withQuery(Query::createFromParams(['error' => $exception->getMessage()]))->__toString();
+	$error = Uri::createFromString()->withPath('onboard.php')->withQuery(Query::createFromParams([
+		'error' => $exception->getMessage()
+	]))->__toString();
 
 	// Forware the user to the error page
 	header("Location: {$error}" );

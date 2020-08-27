@@ -5,6 +5,12 @@ define('CLIENTAREA', true);
 require "init.php";
 require "includes/clientfunctions.php";
 
+// Include our dependencies
+include_once(__DIR__ . DIRECTORY_SEPARATOR . 'vendor' . DIRECTORY_SEPARATOR . 'autoload.php');
+
+use League\Uri\Uri;
+use League\Uri\Components\Query;
+use League\Uri\UriModifier;
 use WHMCS\User\Client;
 use WHMCS\ClientArea;
 use WHMCS\Database\Capsule;
@@ -51,16 +57,28 @@ if ($cookie = Cookie::get('OktaOnboarding')) {
 	// Make sure we have our data
 	if (!property_exists($onboard, 'userinfo') OR !property_exists($onboard, 'client') OR !property_exists($onboard, 'access_token') OR !property_exists($onboard, 'id_token')) {
 
+		// Compose our error URL
+		$error = Uri::createFromString()->withPath('onboard.php')->withQuery(Query::createFromParams([
+			'error' => 'Unable to retrieve userdata. Please try logging in again.'
+		]))->__toString();
+
 		// Throw error
-		header('Location: onboard.php?error=Unable%20to%20retrieve%20user%20data.%20Please%20try%20logging%20in%20again.');
+		header("Location: {$error}");
+		exit;
 	}
 }
 
 // We don't have the proper cookie to work with
 else {
 
+	// Compose our error URL
+	$error = Uri::createFromString()->withPath('onboard.php')->withQuery(Query::createFromParams([
+		'error' => 'Unable to retrieve userdata. Please try logging in again.'
+	]))->__toString();
+
 	// Throw error
-	header('Location: onboard.php?error=Unable%20to%20retrieve%20user%20data.%20Please%20try%20logging%20in%20again.');
+	header("Location: {$error}");
+	exit;
 }
 
 // If we submitted the form
@@ -115,8 +133,13 @@ if ($action) {
 		$message = sprintf('Okta SSO: %s %s has finished %s', $data['firstname'], $data['lastname'], $_GET['type'] == 'update' ? 'verifying their account.' : 'onboarding.');
 		logActivity($message, $result['clientid']);
 
-		// Redirect to the client area page so we can officially log in
-		header('Location: clientarea.php?action=services');
+		// Create our client services URL
+		$clientservices = Uri::createFromString()->withPath('clientarea.php')->withQuery(Query::createFromParams([
+			'action' => 'services'
+		]))->__toString();
+
+		// Redirect to login
+		header("Location: {$clientservices}");
 		exit;
 	}
 
