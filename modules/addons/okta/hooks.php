@@ -76,8 +76,8 @@ add_hook('ClientAreaPageLogin', 1, function ($vars) {
 			// If this is the beginning of the authorization request and we don't have an authorization code yet
 			if (!$_REQUEST['code']) {
 
-				// Set our referrer for redirection
-				setReferer();
+				// Set our redirect URL
+				setRedirectUrl();
 			}
 
 			// Set our redirect URL
@@ -456,14 +456,14 @@ add_hook('AdminAreaClientSummaryActionLinks', 1, function ($vars) {
 });
 
 /**
- * Referer
+ * Redirect URL
  *
- * Finds and sets the referer as a cookie which allows the addon
- * to redirect a user back to page once they are authenticated.
+ * Finds and sets the redirect URL as a cookie which allows the addon
+ * to redirect a user back to a previous page once they are authenticated.
  *
  * @return false|string|null
  */
-function setReferer() {
+function setRedirectUrl() {
 
 	// Get our incoming and current URIs
 	$incoming = Uri::createFromString($_SERVER['HTTP_REFERER']);
@@ -472,13 +472,14 @@ function setReferer() {
 	// If the referer is internal, we don't want to redirect back to an external host
 	if ($incoming->getHost() == $current->getHost()) {
 
-		// Create the current path + query
+		// Generate the current URI and the Client Area Services URI
 		$request = Uri::createFromString()->withPath($current->getPath())->withQuery($current->getQuery())->__toString();
+		$services = Uri::createFromString()->withPath('/clientarea.php')->withQuery('action=services')->__toString();
 
-		// If we have a script name
-		if ($request != '/clientarea.php?action=services' AND $request != 'cart.php?a=view') {
+		// If the current request is not going to the client area services
+		if ($request != $services) {
 
-			// Set our referrer to the request URI
+			// Set our redirection URL cookie
 			Cookie::set('OktaRedirectUrl', trim($request, '/'), strtotime('+1 hour', time()));
 		}
 	}
