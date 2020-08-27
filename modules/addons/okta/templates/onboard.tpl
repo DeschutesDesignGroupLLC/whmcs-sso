@@ -20,11 +20,11 @@
         <div class="col-sm-6">
             <div class="form-group">
                 <label for="inputFirstName" class="control-label">{$LANG.clientareafirstname}</label>
-                <input type="text" name="firstname" id="inputFirstName" value="{$clientfirstname}" class="form-control" />
+                <input type="text" name="firstname" id="inputFirstName" value="{$clientfirstname}" class="form-control" required="required"/>
             </div>
             <div class="form-group">
                 <label for="inputLastName" class="control-label">{$LANG.clientarealastname}</label>
-                <input type="text" name="lastname" id="inputLastName" value="{$clientlastname}" class="form-control" />
+                <input type="text" name="lastname" id="inputLastName" value="{$clientlastname}" class="form-control" required="required"/>
             </div>
         </div>
         <div class="col-sm-6">
@@ -34,7 +34,7 @@
             </div>
             <div class="form-group">
                 <label for="inputEmail" class="control-label">{$LANG.clientareaemail}</label>
-                <input type="email" name="email" id="inputEmail" value="{$clientemail}" disabled="disabled" class="form-control" />
+                <input type="email" name="email" id="inputEmail" value="{$clientemail}" disabled="disabled" class="form-control" required="required"/>
             </div>
         </div>
     </div>
@@ -42,7 +42,7 @@
         <div class="col-sm-12">
             <div class="form-group">
                 <label for="inputAddress1" class="control-label">{$LANG.clientareaaddress1}</label>
-                <input type="text" name="address1" id="inputAddress1" value="{$clientaddress1}" class="form-control" />
+                <input type="text" name="address1" id="inputAddress1" value="{$clientaddress1}" class="form-control" required="required"/>
             </div>
             <div class="form-group">
                 <label for="inputAddress2" class="control-label">{$LANG.clientareaaddress2}</label>
@@ -54,7 +54,7 @@
         <div class="col-sm-6 col-xs-12 pull-right">
             <div class="form-group">
                 <label for="inputState" class="control-label">{$LANG.clientareastate}</label>
-                <input type="text" name="state" id="inputState" value="{$clientstate}" class="form-control" />
+                <input type="text" name="state" id="inputState" value="{$clientstate}" class="form-control" required="required"/>
             </div>
             <div class="form-group">
                 <label class="control-label" for="country">{$LANG.clientareacountry}</label>
@@ -64,11 +64,11 @@
         <div class="col-sm-6 col-xs-12 pull-right">
             <div class="form-group">
                 <label for="inputCity" class="control-label">{$LANG.clientareacity}</label>
-                <input type="text" name="city" id="inputCity" value="{$clientcity}" class="form-control" />
+                <input type="text" name="city" id="inputCity" value="{$clientcity}" class="form-control" required="required"/>
             </div>
             <div class="form-group">
                 <label for="inputPostcode" class="control-label">{$LANG.clientareapostcode}</label>
-                <input type="text" name="postcode" id="inputPostcode" value="{$clientpostcode}" class="form-control" />
+                <input type="text" name="postcode" id="inputPostcode" value="{$clientpostcode}" class="form-control" required="required"/>
             </div>
         </div>
     </div>
@@ -76,7 +76,7 @@
         <div class="col-sm-12">
             <div class="form-group">
                 <label for="inputPhone" class="control-label">{$LANG.clientareaphonenumber}</label>
-                <input type="tel" name="phonenumber" id="inputPhone" value="{$clientphonenumber}" class="form-control" />
+                <input type="tel" name="phonenumber" id="inputPhone" value="{$clientphonenumber}" class="form-control" required="required"/>
             </div>
         </div>
     </div>
