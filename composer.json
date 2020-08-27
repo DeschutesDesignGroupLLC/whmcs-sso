@@ -19,7 +19,7 @@
     "vendor-dir": "modules/addons/okta/vendor"
   },
   "require": {
-    "jumbojett/openid-connect-php": "^v0.9.0",
+    "jumbojett/openid-connect-php": "dev-master",
     "league/uri": "^6.3.0",
     "league/uri-components": "^2.2.1"
   }

@@ -4,20 +4,20 @@
         "Read more about it at https://getcomposer.org/doc/01-basic-usage.md#installing-dependencies",
         "This file is @generated automatically"
     ],
-    "content-hash": "b85a52dffaf23244f082f2aba14b0e1c",
+    "content-hash": "05fc233a50ddf4f37267f9b2db7bc60d",
     "packages": [
         {
             "name": "jumbojett/openid-connect-php",
-            "version": "v0.9.0",
+            "version": "dev-master",
             "source": {
                 "type": "git",
                 "url": "https://github.com/jumbojett/OpenID-Connect-PHP.git",
-                "reference": "87eefea40abd9cea0290aa9b6cdb314fd0037fe2"
+                "reference": "07b4fc030666d177cf43a5dc308318ac9416617b"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/jumbojett/OpenID-Connect-PHP/zipball/87eefea40abd9cea0290aa9b6cdb314fd0037fe2",
-                "reference": "87eefea40abd9cea0290aa9b6cdb314fd0037fe2",
+                "url": "https://api.github.com/repos/jumbojett/OpenID-Connect-PHP/zipball/07b4fc030666d177cf43a5dc308318ac9416617b",
+                "reference": "07b4fc030666d177cf43a5dc308318ac9416617b",
                 "shasum": ""
             },
             "require": {
@@ -41,7 +41,7 @@
                 "Apache-2.0"
             ],
             "description": "Bare-bones OpenID Connect client",
-            "time": "2020-03-09T13:26:39+00:00"
+            "time": "2020-07-27T12:30:09+00:00"
         },
         {
             "name": "league/uri",
@@ -427,7 +427,9 @@
     "packages-dev": [],
     "aliases": [],
     "minimum-stability": "stable",
-    "stability-flags": [],
+    "stability-flags": {
+        "jumbojett/openid-connect-php": 20
+    },
     "prefer-stable": false,
     "prefer-lowest": false,
     "platform": [],

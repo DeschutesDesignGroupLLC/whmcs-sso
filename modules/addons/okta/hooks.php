@@ -213,7 +213,7 @@ add_hook('ClientAreaPageLogin', 1, function ($vars) {
 						logActivity('Okta SSO: WHMCS Local API Error - ' . $results['message']);
 
 						// Forward to error page
-						header('Location: onboard.php?error=' . $exception->getMessage() );
+						showError($exception);
 					}
 				}
 
@@ -224,7 +224,7 @@ add_hook('ClientAreaPageLogin', 1, function ($vars) {
 					logActivity('Okta SSO: WHMCS Login Exception - ' . $exception->getMessage());
 
 					// Forward to error page
-					header('Location: onboard.php?error=' . $exception->getMessage() );
+					showError($exception);
 				}
 			}
 		}
@@ -236,7 +236,7 @@ add_hook('ClientAreaPageLogin', 1, function ($vars) {
 			logActivity('Okta SSO: Model Exception - ' . $exception->getMessage());
 
 			// Forward to error page
-			header('Location: onboard.php?error=' . $exception->getMessage() );
+			showError($exception);
 		}
 
 		// Catch our exceptions if we cant create an OIDC client object
@@ -246,7 +246,7 @@ add_hook('ClientAreaPageLogin', 1, function ($vars) {
 			logActivity('Okta SSO: Client Exception - ' . $exception->getMessage());
 
 			// Forward to error page
-			header('Location: onboard.php?error=' . $exception->getMessage() );
+			showError($exception);
 		}
 
 		// Catch any exception
@@ -256,7 +256,7 @@ add_hook('ClientAreaPageLogin', 1, function ($vars) {
 			logActivity('Okta SSO: Exception - ' . $exception->getMessage());
 
 			// Forward to error page
-			header('Location: onboard.php?error=' . $exception->getMessage() );
+			showError($exception);
 		}
 	}
 });
@@ -428,11 +428,17 @@ add_hook("ClientAreaPageCart", 1, function ($vars) {
 		// If we have no client
 		if (!Menu::context('client')) {
 
-			// Store our redirect url
-			Cookie::set('OktaRedirectUrl', 'cart.php?a=view', strtotime('+1 hour', time()));
+			// Create our redirect URL
+			$cart = Uri::createFromString()->withPath('cart.php')->withQuery(Query::createFromParams(['a' => 'checkout', 'e' => 'false']))->__toString();
+
+			// Store it in a cookie
+			Cookie::set('OktaRedirectUrl', $cart, strtotime('+1 hour', time()));
+
+			// Create our client services URL
+			$clientservices = Uri::createFromString()->withPath('clientarea.php')->withQuery(Query::createFromParams(['action' => 'services']))->__toString();
 
 			// Redirect to login
-			header('Location: clientarea.php?action=services');
+			header("Location: {$clientservices}");
 			exit;
 		}
 	}
@@ -483,4 +489,22 @@ function setRedirectUrl() {
 			Cookie::set('OktaRedirectUrl', trim($request, '/'), strtotime('+1 hour', time()));
 		}
 	}
+}
+
+/**
+ * Show Error
+ *
+ * Forwards the user to an error page displaying the message
+ * from the exception argument.
+ *
+ * @param $exception
+ */
+function showError($exception) {
+
+	// Compose our error URL
+	$error = Uri::createFromString()->withPath('onboard.php')->withQuery(Query::createFromParams(['error' => $exception->getMessage()]))->__toString();
+
+	// Forware the user to the error page
+	header("Location: {$error}" );
+	exit;
 }
