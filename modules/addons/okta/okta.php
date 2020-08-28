@@ -212,7 +212,7 @@ function okta_output($vars) {
 	echo '<script type="text/javascript" src="/assets/js/jquerytt.js"></script>';
 	echo "<form method='post' action='/admin/addonmodules.php?module=okta&action=unlink'>";
 	echo '<div class="tablebg"><table id="sortabletbl0" class="datatable" width="100%" border="0" cellspacing="1" cellpadding="3"><tbody>';
-	echo '<tr><th width="1%"><input type="checkbox" id="checkall0" data-ol-has-click-handler=""></th><th width="5%"><a href="/admin/addonmodules.php?module=okta&orderby=id">ID</a> <img src="images/desc.gif" class="absmiddle"></th><th width="10%"><a href="/admin/addonmodules.php?module=okta&orderby=firstname">First Name</a></th><th width="10%"><a href="/admin/addonmodules.php?module=okta&orderby=lastname">Last Name</a></th><th width="20%"><a href="/admin/addonmodules.php?module=okta&orderby=email">Email</a></th><th width="25%"><a href="/admin/addonmodules.php?module=okta&orderby=sub">Sub</a></th><th width="30%"><a href="/admin/addonmodules.php?module=okta&orderby=access_token">Access Token</a></th></tr>';
+	echo '<tr><th width="1%"><input type="checkbox" id="checkall0" data-ol-has-click-handler=""></th><th width="5%"><a href="/admin/addonmodules.php?module=okta&orderby=id">ID</a> <img src="images/desc.gif" class="absmiddle"></th><th width="10%"><a href="/admin/addonmodules.php?module=okta&orderby=firstname">First Name</a></th><th width="10%"><a href="/admin/addonmodules.php?module=okta&orderby=lastname">Last Name</a></th><th width="20%"><a href="/admin/addonmodules.php?module=okta&orderby=email">Email</a></th><th width="15%"><a href="/admin/addonmodules.php?module=okta&orderby=sub">Sub</a></th><th width="30%"><a href="/admin/addonmodules.php?module=okta&orderby=access_token">Access Token</a></th><th width="10%">Onboarded</th></th></tr>';
 
 	// Get our client login links
 	foreach (Capsule::table('mod_okta_members')->join('tblclients', 'mod_okta_members.client_id', '=', 'tblclients.id')->get() as $link) {
@@ -226,6 +226,11 @@ function okta_output($vars) {
 		echo "<td><a href=\"clientssummary.php?userid=$link->client_id\">$link->email</a></td>";
 		echo "<td>$link->sub</td>";
 		echo "<td style='max-width: 100px'><span class='truncate' style='display: block;'>$link->access_token</span></td>";
+		if ($link->onboarded == 1) {
+			echo "<td><span class='badge status-badge-green'>Yes</span></td>";
+		} else {
+			echo "<td><span class='badge status-badge-orange'>No</span></td>";
+		}
 		echo "</tr>";
 	}
 
