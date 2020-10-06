@@ -480,22 +480,26 @@ add_hook('AdminAreaClientSummaryActionLinks', 1, function ($vars) {
  */
 function setRedirectUrl() {
 
-	// Get our incoming and current URIs
-	$incoming = Uri::createFromString($_SERVER['HTTP_REFERER']);
-	$current = Uri::createFromServer($_SERVER);
+	// If we have a referer
+	if ($_SERVER['HTTP_REFERER']) {
 
-	// If the referer is internal, we don't want to redirect back to an external host
-	if ($incoming->getHost() == $current->getHost()) {
+		// Get our incoming and current URIs
+		$incoming = Uri::createFromString($_SERVER['HTTP_REFERER']);
+		$current = Uri::createFromServer($_SERVER);
 
-		// Generate the current URI and the Client Area Services URI
-		$request = Uri::createFromString()->withPath($current->getPath())->withQuery($current->getQuery())->__toString();
-		$services = Uri::createFromString()->withPath('/clientarea.php')->withQuery('action=services')->__toString();
+		// If the referer is internal, we don't want to redirect back to an external host
+		if ($incoming->getHost() == $current->getHost()) {
 
-		// If the current request is not going to the client area services
-		if ($request != $services) {
+			// Generate the current URI and the Client Area Services URI
+			$request = Uri::createFromString()->withPath($current->getPath())->withQuery($current->getQuery())->__toString();
+			$services = Uri::createFromString()->withPath('/clientarea.php')->withQuery('action=services')->__toString();
 
-			// Set our redirection URL cookie
-			Cookie::set('OktaRedirectUrl', trim($request, '/'), strtotime('+1 hour', time()));
+			// If the current request is not going to the client area services
+			if ($request != $services) {
+
+				// Set our redirection URL cookie
+				Cookie::set('OktaRedirectUrl', trim($request, '/'), strtotime('+1 hour', time()));
+			}
 		}
 	}
 }
