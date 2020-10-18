@@ -49,15 +49,34 @@ add_hook('ClientAreaPageProductsServices', 1, function ($vars) {
 });
 
 /**
+ * Cached WHMCS version details
+ */
+$whmcsDetails = NULL;
+
+/**
  * Client Area Login Hook
  */
-add_hook('ClientAreaPageLogin', 1, function ($vars) {
+add_hook('ClientAreaPageLogin', 1, function ($vars) use ($whmcsDetails) {
 
 	// If no user logged in
 	if (!Menu::context('client')) {
 
 		// Try and get our settings
 		try {
+
+			// If our cached details are empty
+			if (!$whmcsDetails) {
+
+				// Get WHMCS details
+				$whmcsDetails = localAPI('WhmcsDetails', array(), 'Jon Erickson');
+			}
+
+			// If we have a version key
+			if (is_array($whmcsDetails) AND array_key_exists('whmcs', $whmcsDetails)) {
+
+				// Get whmcs version
+				$version = $whmcsDetails['whmcs']['version'];
+			}
 
 			// Get our domain
 			$provider = Setting::where('module', 'okta')->where('setting', 'provider')->firstOrFail();
@@ -80,8 +99,19 @@ add_hook('ClientAreaPageLogin', 1, function ($vars) {
 				setRedirectUrl();
 			}
 
-			// Set our redirect URL
-			$oidc->setRedirectURL((isset($_SERVER['HTTPS']) && $_SERVER['HTTPS'] === 'on' ? "https" : "http") . "://$_SERVER[HTTP_HOST]" . '/clientarea.php');
+			// If WHMCS > 8
+			if (version_compare($version, '8.0.0') >= 0) {
+
+				// Set our redirect URL
+				$oidc->setRedirectURL((isset($_SERVER['HTTPS']) && $_SERVER['HTTPS'] === 'on' ? "https" : "http") . "://$_SERVER[HTTP_HOST]" . '/index.php?rp=/login');
+			}
+
+			// Pre WHMCS 8
+			else {
+
+				// Set our redirect URL
+				$oidc->setRedirectURL((isset($_SERVER['HTTPS']) && $_SERVER['HTTPS'] === 'on' ? "https" : "http") . "://$_SERVER[HTTP_HOST]" . '/clientarea.php');
+			}
 
 			// Add scopes
 			$oidc->addScope($scopes);
@@ -97,11 +127,15 @@ add_hook('ClientAreaPageLogin', 1, function ($vars) {
 				$oidc->setVerifyPeer(FALSE);
 			}
 
-			// Log our auth call
-			logModuleCall('okta', 'authorize', array('provider' => $oidc->getProviderURL(), 'client_id' => $oidc->getClientID(), 'redirect_url' => $oidc->getRedirectURL(), 'scope' => $oidc->getScopes()), array('access_token' => $oidc->getAccessToken(), 'id_token' => $oidc->getIdToken()), NULL, NULL);
-
 			// Start auth process
-			$oidc->authenticate();
+			$authorized = $oidc->authenticate();
+
+			// If we just authorized
+			if ($authorized) {
+
+				// Log our auth call
+				logModuleCall('okta', 'authorize', array('provider' => $oidc->getProviderURL(), 'client_id' => $oidc->getClientID(), 'redirect_url' => $oidc->getRedirectURL(), 'scope' => $oidc->getScopes()), array('access_token' => $oidc->getAccessToken(), 'id_token' => $oidc->getIdToken()), NULL, NULL);
+			}
 
 			// Get the subject from the ID token
 			$token = $oidc->getIdTokenPayload();
@@ -494,8 +528,8 @@ function setRedirectUrl() {
 			$request = Uri::createFromString()->withPath($current->getPath())->withQuery($current->getQuery())->__toString();
 			$services = Uri::createFromString()->withPath('/clientarea.php')->withQuery('action=services')->__toString();
 
-			// If the current request is not going to the client area services
-			if ($request != $services) {
+			// If the current request is not going to the client area services AND it is not coming from the main login page
+			if ($request != $services AND $current->getQuery() !== 'rp=/login') {
 
 				// Set our redirection URL cookie
 				Cookie::set('OktaRedirectUrl', trim($request, '/'), strtotime('+1 hour', time()));
