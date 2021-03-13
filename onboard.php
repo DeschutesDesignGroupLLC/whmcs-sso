@@ -10,7 +10,7 @@ include_once(__DIR__ . DIRECTORY_SEPARATOR . 'vendor' . DIRECTORY_SEPARATOR . 'a
 
 use League\Uri\Uri;
 use League\Uri\Components\Query;
-use League\Uri\UriModifier;
+use WHMCS\User\User;
 use WHMCS\User\Client;
 use WHMCS\ClientArea;
 use WHMCS\Database\Capsule;
@@ -52,10 +52,10 @@ if ($_GET['error']) {
 if ($cookie = Cookie::get('OktaOnboarding')) {
 
 	// Decode the cookie
-	$onboard = json_decode(base64_decode($cookie));
+	$onboard = json_decode(base64_decode($cookie), FALSE);
 
 	// Make sure we have our data
-	if (!property_exists($onboard, 'userinfo') OR !property_exists($onboard, 'client') OR !property_exists($onboard, 'access_token') OR !property_exists($onboard, 'id_token')) {
+	if (!property_exists($onboard, 'userinfo') || !property_exists($onboard, 'client') || !property_exists($onboard, 'access_token') || !property_exists($onboard, 'id_token')) {
 
 		// Compose our error URL
 		$error = Uri::createFromString()->withPath('onboard.php')->withQuery(Query::createFromParams([
@@ -82,7 +82,7 @@ else {
 }
 
 // If we submitted the form
-$action = isset($_REQUEST['action']) AND $_REQUEST['action'] == 'submit' ? $_REQUEST['action'] : NULL;
+$action = isset($_REQUEST['action']) AND $_REQUEST['action'] === 'submit' ? $_REQUEST['action'] : NULL;
 
 // If we have an action
 if ($action) {
@@ -104,7 +104,7 @@ if ($action) {
 	);
 
 	// If this is an update
-	if ($_GET['type'] == 'update') {
+	if ($_GET['type'] === 'update') {
 
 		// Add the client id to the request
 		$data['clientid'] = $onboard->client;
@@ -116,12 +116,25 @@ if ($action) {
 	// This is an add/create
 	else {
 
+		// Try to find a user account
+		try {
+
+			// First make sure the email is not associated with a user
+			$user = User::where('email', $data['email'])->firstOrFail();
+
+			// If we found a user, tell our new client it should be owned by the user
+			$data['owner_user_id'] = $user->id;
+		}
+
+		// Catch any exception
+		catch (\Exception $exception) {}
+
 		// Fire the API request
 		$result = localAPI('AddClient', $data, 'Jon Erickson');
 	}
 
 	// If we successfully created the user
-	if ($result['result'] == 'success' and $result['clientid']) {
+	if ($result['result'] === 'success' && $result['clientid']) {
 
 		// Set their onboard flag
 		Capsule::insert("INSERT INTO `mod_okta_members` (client_id,sub,access_token,id_token,onboarded) VALUES ('{$result['clientid']}', '{$onboard->userinfo->sub}', '{$onboard->access_token}', '{$onboard->id_token}', 1) ON DUPLICATE KEY UPDATE sub = '{$onboard->userinfo->sub}', access_token = '{$onboard->access_token}', id_token = '{$onboard->id_token}', onboarded = 1");
@@ -130,7 +143,7 @@ if ($action) {
 		Cookie::delete('OktaOnboarding');
 
 		// Log the activity
-		$message = sprintf('Okta SSO: %s %s has finished %s', $data['firstname'], $data['lastname'], $_GET['type'] == 'update' ? 'verifying their account.' : 'onboarding.');
+		$message = sprintf('Okta SSO: %s %s has finished %s', $data['firstname'], $data['lastname'], $_GET['type'] === 'update' ? 'verifying their account.' : 'onboarding.');
 		logActivity($message, $result['clientid']);
 
 		// Create our client services URL
@@ -144,11 +157,8 @@ if ($action) {
 	}
 
 	// If we have an AddClient API error
-	else {
-
-		// Set error
-		$ca->assign('errormessage', $result['message']);
-	}
+	// Set error
+	$ca->assign('errormessage', $result['message']);
 }
 
 // If the client is already registered
@@ -211,8 +221,8 @@ else {
 	$ca->assign('clientemail', $onboard->userinfo->email);
 
 	// Assign our userinfo
-	$ca->assign('clientfirstname', isset($onboard->userinfo->given_name) ? $onboard->userinfo->given_name : NULL);
-	$ca->assign('clientlastname', isset($onboard->userinfo->family_name) ? $onboard->userinfo->family_name : NULL);
+	$ca->assign('clientfirstname', $onboard->userinfo->given_name ?? NULL);
+	$ca->assign('clientlastname', $onboard->userinfo->family_name ?? NULL);
 }
 
 // Set the template

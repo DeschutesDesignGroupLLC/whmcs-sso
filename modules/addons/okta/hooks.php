@@ -72,7 +72,7 @@ add_hook('ClientAreaPageLogin', 1, function ($vars) use ($whmcsDetails) {
 			}
 
 			// If we have a version key
-			if (is_array($whmcsDetails) AND array_key_exists('whmcs', $whmcsDetails)) {
+			if (is_array($whmcsDetails) && array_key_exists('whmcs', $whmcsDetails)) {
 
 				// Get whmcs version
 				$version = $whmcsDetails['whmcs']['version'];
@@ -150,7 +150,7 @@ add_hook('ClientAreaPageLogin', 1, function ($vars) use ($whmcsDetails) {
 			try {
 
 				// Query the database for a previous login links
-				$member = Capsule::table('mod_okta_members')->where('sub', $token->sub)->first();
+				$member = Capsule::table('mod_okta_members')->where('sub', $token->sub)->orderBy('client_id', 'desc')->first();
 
 				// We found a member, try and load the associated client
 				$client = Client::findOrFail($member->client_id);
@@ -164,21 +164,21 @@ add_hook('ClientAreaPageLogin', 1, function ($vars) use ($whmcsDetails) {
 			}
 
 			// If we are skipping onboarding and we don't have a client
-			if ($skiponboarding->value AND !$client) {
+			if ($skiponboarding->value && !$client) {
 
 				// Create a client and sign them in
-				$client = Client::firstOrNew([ 'email' => $userinfo->email ]);
+				$client = Client::firstOrNew(['email' => $userinfo->email]);
 
 				// If the user did not exist
 				if ( !$client->exists ) {
 
 					// If the client did not exist
 					$client->email = $userinfo->email;
-					$client->firstname = $userinfo->given_name ? $userinfo->given_name : 'New';
-					$client->lastname = $userinfo->family_name ? $userinfo->family_name : 'User';
+					$client->firstname = $userinfo->given_name ?: 'New';
+					$client->lastname = $userinfo->family_name ?: 'User';
 					$client->created_at = time();
 					$client->updated_at = time();
-					$client->datecreated = date("Y-m-d", time());
+					$client->datecreated = date("Y-m-d");
 					$client->email_verified = 1;
 					$client->allow_sso = 1;
 					$client->save();
@@ -186,26 +186,22 @@ add_hook('ClientAreaPageLogin', 1, function ($vars) use ($whmcsDetails) {
 			}
 
 			// We are not skipping onboarding
-			else {
+			else if ((!$client || ($member && !$member->onboarded) || ($client && !$member)) && !$skiponboarding->value) {
 
-				// If we got a client and they havent onboarded, got a client and they didnt have a login link yet or we didnt find a client, and we are not skipping the process
-				if ((!$client OR ($member AND !$member->onboarded) OR ($client AND !$member)) AND !$skiponboarding->value) {
+				// Create our onboarding data we'll pass in a cookie
+				$onboard = array(
+					'userinfo' => $userinfo,
+					'client' => $client->id ?? NULL,
+					'access_token' => $oidc->getAccessToken(),
+					'id_token' => $oidc->getIdToken()
+				);
 
-					// Create our onboarding data we'll pass in a cookie
-					$onboard = array(
-						'userinfo' => $userinfo,
-						'client' => $client ? $client->id : NULL,
-						'access_token' => $oidc->getAccessToken(),
-						'id_token' => $oidc->getIdToken()
-					);
+				// Store the users email address
+				Cookie::set('OktaOnboarding', base64_encode(json_encode($onboard)), strtotime('+1 hour'));
 
-					// Store the users email address
-					Cookie::set('OktaOnboarding', base64_encode(json_encode($onboard)), strtotime('+1 hour', time()));
-
-					// Redirect to change password
-					header("Location: onboard.php");
-					exit;
-				}
+				// Redirect to change password
+				header("Location: onboard.php");
+				exit;
 			}
 
 			// If we get a client
@@ -229,10 +225,10 @@ add_hook('ClientAreaPageLogin', 1, function ($vars) use ($whmcsDetails) {
 					logModuleCall('okta', 'CreateSsoToken', $sso, $results, NULL, NULL);
 
 					// If the result was successful
-					if ($results['result'] == 'success') {
+					if ($results['result'] === 'success') {
 
 						// If we get a redirect URL
-						if (key_exists('redirect_url', $results)) {
+						if (array_key_exists('redirect_url', $results)) {
 
 							// Redirect the user
 							header("Location: {$results['redirect_url']}");
@@ -323,7 +319,7 @@ add_hook('ClientAreaPagePasswordReset', 1, function ($vars) {
 		$redirect = Setting::where('module', 'okta')->where('setting', 'redirectpassword')->firstOrFail();
 
 		// If we have a valid URL
-		if (isset($redirect->value) and $redirect->value != NULL) {
+		if (isset($redirect->value) && $redirect->value !== NULL) {
 
 			// Redirect to change password
 			header("Location: {$redirect->value}");
@@ -351,7 +347,7 @@ add_hook('ClientAreaPageChangePassword', 1, function ($vars) {
 		$redirect = Setting::where('module', 'okta')->where('setting', 'redirectpassword')->firstOrFail();
 
 		// If we have a valid URL
-		if (isset($redirect->value) and $redirect->value != NULL) {
+		if (isset($redirect->value) && $redirect->value !== NULL) {
 
 			// Redirect to change password
 			header("Location: {$redirect->value}");
@@ -394,7 +390,7 @@ add_hook('ClientLogout', 1, function ($vars) {
 		$redirect = Setting::where('module', 'okta')->where('setting', 'redirectlogout')->firstOrFail();
 
 		// If we have a valid URL
-		if (isset($redirect->value) and $redirect->value != NULL) {
+		if (isset($redirect->value) && $redirect->value !== NULL) {
 
 			// Get the member who is logging out
 			$member = Capsule::table('mod_okta_members')->where('client_id', $vars['userid'])->first();
@@ -435,7 +431,7 @@ add_hook('ClientAreaPageRegister', 1, function ($vars) {
 		$redirect = Setting::where('module', 'okta')->where('setting', 'redirectregistration')->firstOrFail();
 
 		// If we have a valid URL
-		if (isset($redirect->value) and $redirect->value != NULL) {
+		if (isset($redirect->value) && $redirect->value !== NULL) {
 
 			// Redirect to registration page
 			header("Location: {$redirect->value}");
@@ -457,29 +453,26 @@ add_hook('ClientAreaPageRegister', 1, function ($vars) {
 add_hook("ClientAreaPageCart", 1, function ($vars) {
 
 	// If on the checkout page
-	if ($_GET['a'] == 'checkout') {
+	// If we have no client
+	if (($_GET['a'] === 'checkout') && !Menu::context('client')) {
 
-		// If we have no client
-		if (!Menu::context('client')) {
+		// Create our redirect URL
+		$cart = Uri::createFromString()->withPath('cart.php')->withQuery(Query::createFromParams([
+			'a' => 'checkout',
+			'e' => 'false'
+		]))->__toString();
 
-			// Create our redirect URL
-			$cart = Uri::createFromString()->withPath('cart.php')->withQuery(Query::createFromParams([
-				'a' => 'checkout',
-				'e' => 'false'
-			]))->__toString();
+		// Store it in a cookie
+		Cookie::set('OktaRedirectUrl', $cart, strtotime('+1 hour'));
 
-			// Store it in a cookie
-			Cookie::set('OktaRedirectUrl', $cart, strtotime('+1 hour', time()));
+		// Create our client services URL
+		$clientservices = Uri::createFromString()->withPath('clientarea.php')->withQuery(Query::createFromParams([
+			'action' => 'services'
+		]))->__toString();
 
-			// Create our client services URL
-			$clientservices = Uri::createFromString()->withPath('clientarea.php')->withQuery(Query::createFromParams([
-				'action' => 'services'
-			]))->__toString();
-
-			// Redirect to login
-			header("Location: {$clientservices}");
-			exit;
-		}
+		// Redirect to login
+		header("Location: {$clientservices}");
+		exit;
 	}
 });
 
@@ -522,17 +515,17 @@ function setRedirectUrl() {
 		$current = Uri::createFromServer($_SERVER);
 
 		// If the referer is internal, we don't want to redirect back to an external host
-		if ($incoming->getHost() == $current->getHost()) {
+		if ($incoming->getHost() === $current->getHost()) {
 
 			// Generate the current URI and the Client Area Services URI
 			$request = Uri::createFromString()->withPath($current->getPath())->withQuery($current->getQuery())->__toString();
 			$services = Uri::createFromString()->withPath('/clientarea.php')->withQuery('action=services')->__toString();
 
 			// If the current request is not going to the client area services AND it is not coming from the main login page
-			if ($request != $services AND $current->getQuery() !== 'rp=/login') {
+			if ($request !== $services && $current->getQuery() !== 'rp=/login') {
 
 				// Set our redirection URL cookie
-				Cookie::set('OktaRedirectUrl', trim($request, '/'), strtotime('+1 hour', time()));
+				Cookie::set('OktaRedirectUrl', trim($request, '/'), strtotime('+1 hour'));
 			}
 		}
 	}
