@@ -68,11 +68,6 @@ function okta_config() {
 				"Type" => "text",
 				"Size" => "25",
 				"Description" => "<br>If provided, the client will be taken to this URL when attempting to logout."
-			),
-			"skiponboarding" => array(
-				"FriendlyName" => "Skip Onboarding Process",
-				"Type" => "yesno",
-				"Description" => "If selected, a client account will automatically be created when signing in for the first time. If unselected, a client will first be forced to provide all their client details before the account is created."
 			)
 		)
 	);
@@ -89,8 +84,8 @@ function okta_activate() {
 
 		// Create table
 		Capsule::schema()->create('mod_okta_members', function ($table) {
-
 			$table->unsignedBigInteger('client_id', FALSE);
+			$table->unsignedBigInteger('user_id', FALSE);
 			$table->mediumText('sub')->nullable()->default(NULL);
 			$table->mediumText('access_token')->nullable()->default(NULL);
 			$table->mediumText('id_token')->nullable()->default(NULL);
@@ -162,6 +157,15 @@ function okta_upgrade($vars) {
 
 		// Get the currently installed version
 		$currentlyInstalledVersion = $vars['version'];
+
+		// If upgrading to version 1.0.4
+		if (version_compare($currentlyInstalledVersion, '1.0.4') < 0) {
+
+			// Add new user id column
+			Capsule::schema()->table('mod_okta_members', function ($table) {
+				$table->unsignedBigInteger('user_id', FALSE);
+			});
+		}
 	}
 
 	// Catch our exceptions

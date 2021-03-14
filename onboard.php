@@ -136,24 +136,38 @@ if ($action) {
 	// If we successfully created the user
 	if ($result['result'] === 'success' && $result['clientid']) {
 
-		// Set their onboard flag
-		Capsule::insert("INSERT INTO `mod_okta_members` (client_id,sub,access_token,id_token,onboarded) VALUES ('{$result['clientid']}', '{$onboard->userinfo->sub}', '{$onboard->access_token}', '{$onboard->id_token}', 1) ON DUPLICATE KEY UPDATE sub = '{$onboard->userinfo->sub}', access_token = '{$onboard->access_token}', id_token = '{$onboard->id_token}', onboarded = 1");
+		// Try to get our client
+		try {
 
-		// Delete the onboarding cookie
-		Cookie::delete('OktaOnboarding');
+			// Get the client
+			$client = Client::findOrFail($result['clientid']);
 
-		// Log the activity
-		$message = sprintf('Okta SSO: %s %s has finished %s', $data['firstname'], $data['lastname'], $_GET['type'] === 'update' ? 'verifying their account.' : 'onboarding.');
-		logActivity($message, $result['clientid']);
+			// Set their onboard flag
+			Capsule::insert("INSERT INTO `mod_okta_members` (client_id,user_id,sub,access_token,id_token,onboarded) VALUES ('{$client->id}', '{$client->owner()->id}', '{$onboard->userinfo->sub}', '{$onboard->access_token}', '{$onboard->id_token}', 1) ON DUPLICATE KEY UPDATE user_id = '{$client->owner()->id}', sub = '{$onboard->userinfo->sub}', access_token = '{$onboard->access_token}', id_token = '{$onboard->id_token}', onboarded = 1");
 
-		// Create our client services URL
-		$clientservices = Uri::createFromString()->withPath('clientarea.php')->withQuery(Query::createFromParams([
-			'action' => 'services'
-		]))->__toString();
+			// Delete the onboarding cookie
+			Cookie::delete('OktaOnboarding');
 
-		// Redirect to login
-		header("Location: {$clientservices}");
-		exit;
+			// Log the activity
+			$message = sprintf('Okta SSO: %s %s has finished %s', $data['firstname'], $data['lastname'], $_GET['type'] === 'update' ? 'verifying their account.' : 'onboarding.');
+			logActivity($message, $result['clientid']);
+
+			// Create our client services URL
+			$clientservices = Uri::createFromString()->withPath('clientarea.php')->withQuery(Query::createFromParams([
+				'action' => 'services'
+			]))->__toString();
+
+			// Redirect to login
+			header("Location: {$clientservices}");
+			exit;
+		}
+
+		// Catch any exception
+		catch (\Exception $exception) {
+
+			// Set error
+			$result['message'] = 'Unable to find client account.';
+		}
 	}
 
 	// If we have an AddClient API error
@@ -197,9 +211,7 @@ if ($onboard->client) {
 	}
 
 	// Unable to find the client
-	catch (\Exception $exception) {
-
-	}
+	catch (\Exception $exception) {}
 }
 
 // This is a new user

@@ -84,7 +84,6 @@ add_hook('ClientAreaPageLogin', 1, function ($vars) use ($whmcsDetails) {
 			$clientsecret = Setting::where('module', 'okta')->where('setting', 'clientsecret')->firstOrFail();
 			$scopes = Setting::where('module', 'okta')->where('setting', 'scopes')->firstOrFail();
 			$disablessl = Setting::where('module', 'okta')->where('setting', 'disablessl')->firstOrFail();
-			$skiponboarding = Setting::where('module', 'okta')->where('setting', 'skiponboarding')->firstOrFail();
 
 			// Get scopes
 			$scopes = explode(',', $scopes->value);
@@ -99,19 +98,8 @@ add_hook('ClientAreaPageLogin', 1, function ($vars) use ($whmcsDetails) {
 				setRedirectUrl();
 			}
 
-			// If WHMCS > 8
-			if (version_compare($version, '8.0.0') >= 0) {
-
-				// Set our redirect URL
-				$oidc->setRedirectURL((isset($_SERVER['HTTPS']) && $_SERVER['HTTPS'] === 'on' ? "https" : "http") . "://$_SERVER[HTTP_HOST]" . '/index.php?rp=/login');
-			}
-
-			// Pre WHMCS 8
-			else {
-
-				// Set our redirect URL
-				$oidc->setRedirectURL((isset($_SERVER['HTTPS']) && $_SERVER['HTTPS'] === 'on' ? "https" : "http") . "://$_SERVER[HTTP_HOST]" . '/clientarea.php');
-			}
+			// Set our redirect URL
+			$oidc->setRedirectURL((isset($_SERVER['HTTPS']) && $_SERVER['HTTPS'] === 'on' ? "https" : "http") . "://$_SERVER[HTTP_HOST]" . '/index.php?rp=/login');
 
 			// Add scopes
 			$oidc->addScope($scopes);
@@ -163,30 +151,8 @@ add_hook('ClientAreaPageLogin', 1, function ($vars) use ($whmcsDetails) {
 				$client = Client::where('email', $userinfo->email)->get()->first();
 			}
 
-			// If we are skipping onboarding and we don't have a client
-			if ($skiponboarding->value && !$client) {
-
-				// Create a client and sign them in
-				$client = Client::firstOrNew(['email' => $userinfo->email]);
-
-				// If the user did not exist
-				if ( !$client->exists ) {
-
-					// If the client did not exist
-					$client->email = $userinfo->email;
-					$client->firstname = $userinfo->given_name ?: 'New';
-					$client->lastname = $userinfo->family_name ?: 'User';
-					$client->created_at = time();
-					$client->updated_at = time();
-					$client->datecreated = date("Y-m-d");
-					$client->email_verified = 1;
-					$client->allow_sso = 1;
-					$client->save();
-				}
-			}
-
-			// We are not skipping onboarding
-			else if ((!$client || ($member && !$member->onboarded) || ($client && !$member)) && !$skiponboarding->value) {
+			// If we need to onboard the client
+			if (!$client || ($member && !$member->onboarded) || ($client && !$member)) {
 
 				// Create our onboarding data we'll pass in a cookie
 				$onboard = array(
@@ -211,7 +177,7 @@ add_hook('ClientAreaPageLogin', 1, function ($vars) use ($whmcsDetails) {
 				try {
 
 					// Add our SSO link
-					Capsule::insert("INSERT INTO `mod_okta_members` (client_id,sub,access_token,id_token) VALUES ('{$client->id}','{$token->sub}','{$oidc->getAccessToken()}','{$oidc->getIdToken()}') ON DUPLICATE KEY UPDATE sub = '{$token->sub}', access_token = '{$oidc->getAccessToken()}', id_token = '{$oidc->getIdToken()}'");
+					Capsule::insert("INSERT INTO `mod_okta_members` (client_id,user_id,sub,access_token,id_token) VALUES ('{$client->id}','{$client->owner()->id}','{$token->sub}','{$oidc->getAccessToken()}','{$oidc->getIdToken()}') ON DUPLICATE KEY UPDATE user_id = '{$client->owner()->id}', sub = '{$token->sub}', access_token = '{$oidc->getAccessToken()}', id_token = '{$oidc->getIdToken()}'");
 
 					// Compose our SSO payload
 					$sso = array(
@@ -364,24 +330,9 @@ add_hook('ClientAreaPageChangePassword', 1, function ($vars) {
 });
 
 /**
- * Client Logout Page
+ * User Logout
  */
-add_hook('ClientAreaPageLogout', 1, function ($vars) {
-
-	// If the logout redirect URL is set
-	if (isset($_SESSION['oktasso_logout_redirect'])) {
-
-		// Redirect
-		header("Location: {$_SESSION['oktasso_logout_redirect']}");
-		unset($_SESSION['oktasso_logout_redirect']);
-		exit;
-	}
-});
-
-/**
- * Client Logout
- */
-add_hook('ClientLogout', 1, function ($vars) {
+add_hook('UserLogout', 1, function ($vars) {
 
 	// Try and get our settings
 	try {
@@ -393,7 +344,7 @@ add_hook('ClientLogout', 1, function ($vars) {
 		if (isset($redirect->value) && $redirect->value !== NULL) {
 
 			// Get the member who is logging out
-			$member = Capsule::table('mod_okta_members')->where('client_id', $vars['userid'])->first();
+			$member = Capsule::table('mod_okta_members')->where('user_id', $vars['user']->id)->first();
 
 			// Compose logout URL
 			$logout = Uri::createFromString($redirect->value);
@@ -406,8 +357,9 @@ add_hook('ClientLogout', 1, function ($vars) {
 				$logout = UriModifier::appendQuery($logout, $token);
 			}
 
-			// Store the logout redirect
-			$_SESSION['oktasso_logout_redirect'] = $logout;
+			// Redirect
+			header("Location: {$logout->__toString()}");
+			exit;
 		}
 	}
 
@@ -417,6 +369,7 @@ add_hook('ClientLogout', 1, function ($vars) {
 		// Got Error
 		logActivity('Okta SSO: Logout Exception - ' . $exception->getMessage());
 	}
+
 });
 
 /**
