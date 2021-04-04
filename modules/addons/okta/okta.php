@@ -1,11 +1,12 @@
 <?php
 
-use WHMCS\Database\Capsule;
-
 // Make sure we're not accessing directly
 if (!defined("WHMCS")) {
 	die("This file cannot be accessed directly");
 }
+
+use WHMCS\Database\Capsule;
+use WHMCS\User\Client;
 
 /**
  * Configuration Settings
@@ -17,7 +18,7 @@ function okta_config() {
 	return array(
 		"name" => "Single Sign-On with Okta",
 		"description" => "A plug and play Single Sign-On (SSO) addon for WHMCS enabling your software to sign-in with Okta.",
-		"version" => "1.0.4",
+		"version" => "1.0.5",
 		"author" => "Deschutes Design Group LLC",
 		"language" => 'english',
 		"fields" => array(
@@ -84,20 +85,17 @@ function okta_activate() {
 
 		// Create table
 		Capsule::schema()->create('mod_okta_members', function ($table) {
-			$table->unsignedBigInteger('client_id', FALSE);
 			$table->unsignedBigInteger('user_id', FALSE);
 			$table->mediumText('sub')->nullable()->default(NULL);
 			$table->mediumText('access_token')->nullable()->default(NULL);
 			$table->mediumText('id_token')->nullable()->default(NULL);
-			$table->smallInteger('onboarded')->default(0);
-			$table->primary('client_id');
+			$table->primary('user_id');
 		});
 
 		// Return our message
 		return [
-
-			// Supported values here include: success, error or info
-			'status' => 'success', 'description' => 'The addon has been successfully activated.'
+			'status' => 'success',
+			'description' => 'The addon has been successfully activated.'
 		];
 	}
 
@@ -106,9 +104,8 @@ function okta_activate() {
 
 		// Return our message
 		return [
-
-			// Supported values here include: success, error or info
-			'status' => 'error', 'description' => "Unable to activate addon: {$exception->getMessage()}"
+			'status' => 'error',
+			'description' => "Unable to activate addon: {$exception->getMessage()}"
 		];
 	}
 }
@@ -127,9 +124,8 @@ function okta_deactivate() {
 
 		// Return our status
 		return [
-
-			// Supported values here include: success, error or info
-			'status' => 'success', 'description' => 'The addon has been successfully deactivated.'
+			'status' => 'success',
+			'description' => 'The addon has been successfully deactivated.'
 		];
 	}
 
@@ -138,9 +134,8 @@ function okta_deactivate() {
 
 		// Return our status
 		return [
-
-			// Supported values here include: success, error or info
-			"status" => "error", "description" => "Unable to deactivate addon: {$exception->getMessage()}"
+			"status" => "error",
+			"description" => "Unable to deactivate addon: {$exception->getMessage()}"
 		];
 	}
 }
@@ -164,6 +159,41 @@ function okta_upgrade($vars) {
 			// Add new user id column
 			Capsule::schema()->table('mod_okta_members', function ($table) {
 				$table->unsignedBigInteger('user_id', FALSE);
+			});
+		}
+
+		// If upgrading to version 1.0.5
+		if (version_compare($currentlyInstalledVersion, '1.0.5') < 0) {
+
+			// Convert all Client IDs to User ID's
+			Capsule::table('mod_okta_members')->where('user_id', '0')->orderBy('client_id')->chunk(100, function ($rows) {
+				foreach ($rows as $row) {
+					try {
+						$client = Client::where('id', $row->client_id)->firstOrFail();
+						Capsule::table('mod_okta_members')->where('client_id', $row->client_id)->update([
+							'user_id' => $client->owner()->id
+						]);
+					} catch (\Exception $exception) {}
+				}
+			});
+
+			// Drop table
+			if (Capsule::schema()->hasColumn('mod_okta_members', 'client_id')) {
+				Capsule::schema()->table('mod_okta_members', function ($table) {
+					$table->dropColumn('client_id');
+				});
+			}
+
+			// Drop table
+			if (Capsule::schema()->hasColumn('mod_okta_members', 'onboarding')) {
+				Capsule::schema()->table('mod_okta_members', function ($table) {
+					$table->dropColumn('onboarding');
+				});
+			}
+
+			// Assign primary to user_id
+			Capsule::schema()->table('mod_okta_members', function ($table) {
+				$table->primary('user_id');
 			});
 		}
 	}
@@ -196,7 +226,7 @@ function okta_output($vars) {
 			try {
 
 				// Delete the members
-				Capsule::table('mod_okta_members')->whereIn('client_id', $delete)->delete();
+				Capsule::table('mod_okta_members')->whereIn('user_id', $delete)->delete();
 
 				// Redirect to reset
 				header('Location: /admin/addonmodules.php?module=okta');
@@ -216,25 +246,20 @@ function okta_output($vars) {
 	echo '<script type="text/javascript" src="/assets/js/jquerytt.js"></script>';
 	echo "<form method='post' action='/admin/addonmodules.php?module=okta&action=unlink'>";
 	echo '<div class="tablebg"><table id="sortabletbl0" class="datatable" width="100%" border="0" cellspacing="1" cellpadding="3"><tbody>';
-	echo '<tr><th width="1%"><input type="checkbox" id="checkall0" data-ol-has-click-handler=""></th><th width="5%"><a href="/admin/addonmodules.php?module=okta&orderby=id">ID</a> <img src="images/desc.gif" class="absmiddle"></th><th width="10%"><a href="/admin/addonmodules.php?module=okta&orderby=firstname">First Name</a></th><th width="10%"><a href="/admin/addonmodules.php?module=okta&orderby=lastname">Last Name</a></th><th width="20%"><a href="/admin/addonmodules.php?module=okta&orderby=email">Email</a></th><th width="15%"><a href="/admin/addonmodules.php?module=okta&orderby=sub">Sub</a></th><th width="30%"><a href="/admin/addonmodules.php?module=okta&orderby=access_token">Access Token</a></th><th width="10%">Onboarded</th></th></tr>';
+	echo '<tr><th width="1%"><input type="checkbox" id="checkall0" data-ol-has-click-handler=""></th><th width="5%"><a href="/admin/addonmodules.php?module=okta&orderby=id">ID</a> <img src="images/desc.gif" class="absmiddle"></th><th width="10%"><a href="/admin/addonmodules.php?module=okta&orderby=firstname">First Name</a></th><th width="10%"><a href="/admin/addonmodules.php?module=okta&orderby=lastname">Last Name</a></th><th width="20%"><a href="/admin/addonmodules.php?module=okta&orderby=email">Email</a></th><th width="15%"><a href="/admin/addonmodules.php?module=okta&orderby=sub">Sub</a></th><th width="30%"><a href="/admin/addonmodules.php?module=okta&orderby=access_token">Access Token</a></th></tr>';
 
 	// Get our client login links
-	foreach (Capsule::table('mod_okta_members')->join('tblclients', 'mod_okta_members.client_id', '=', 'tblclients.id')->get() as $link) {
+	foreach (Capsule::table('mod_okta_members')->join('tblusers', 'mod_okta_members.user_id', '=', 'tblusers.id')->get() as $link) {
 
 		// Print a row
 		echo "<tr>";
-		echo "<td><input type='checkbox' name='selectedclients[]' value='$link->id' class='checkall'></td>";
-		echo "<td><a href=\"clientssummary.php?userid=$link->client_id\">$link->client_id</a></td>";
-		echo "<td><a href=\"clientssummary.php?userid=$link->client_id\">$link->firstname</a></td>";
-		echo "<td><a href=\"clientssummary.php?userid=$link->client_id\">$link->lastname</a></td>";
-		echo "<td><a href=\"clientssummary.php?userid=$link->client_id\">$link->email</a></td>";
+		echo "<td><input type='checkbox' name='selectedclients[]' value='$link->user_id' class='checkall'></td>";
+		echo "<td><a href=\"clientssummary.php?userid=$link->user_id\">$link->user_id</a></td>";
+		echo "<td><a href=\"clientssummary.php?userid=$link->user_id\">$link->first_name</a></td>";
+		echo "<td><a href=\"clientssummary.php?userid=$link->user_id\">$link->last_name</a></td>";
+		echo "<td><a href=\"clientssummary.php?userid=$link->user_id\">$link->email</a></td>";
 		echo "<td>$link->sub</td>";
 		echo "<td style='max-width: 100px'><span class='truncate' style='display: block;'>$link->access_token</span></td>";
-		if ($link->onboarded == 1) {
-			echo "<td><span class='badge status-badge-green'>Yes</span></td>";
-		} else {
-			echo "<td><span class='badge status-badge-orange'>No</span></td>";
-		}
 		echo "</tr>";
 	}
 

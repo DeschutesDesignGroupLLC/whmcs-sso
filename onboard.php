@@ -8,14 +8,14 @@ require "includes/clientfunctions.php";
 // Include our dependencies
 include_once(__DIR__ . DIRECTORY_SEPARATOR . 'vendor' . DIRECTORY_SEPARATOR . 'autoload.php');
 
-use League\Uri\Uri;
 use League\Uri\Components\Query;
-use WHMCS\User\User;
-use WHMCS\User\Client;
-use WHMCS\ClientArea;
-use WHMCS\Database\Capsule;
-use WHMCS\Cookie;
+use League\Uri\Uri;
 use Ramsey\Uuid\Uuid;
+use WHMCS\ClientArea;
+use WHMCS\Cookie;
+use WHMCS\Database\Capsule;
+use WHMCS\User\Client;
+use WHMCS\User\User;
 
 // Create a new client area object
 $ca = new ClientArea();
@@ -55,7 +55,7 @@ if ($cookie = Cookie::get('OktaOnboarding')) {
 	$onboard = json_decode(base64_decode($cookie), FALSE);
 
 	// Make sure we have our data
-	if (!property_exists($onboard, 'userinfo') || !property_exists($onboard, 'client') || !property_exists($onboard, 'access_token') || !property_exists($onboard, 'id_token')) {
+	if (!property_exists($onboard, 'userinfo') || !property_exists($onboard, 'user') || !property_exists($onboard, 'access_token') || !property_exists($onboard, 'id_token')) {
 
 		// Compose our error URL
 		$error = Uri::createFromString()->withPath('onboard.php')->withQuery(Query::createFromParams([
@@ -103,35 +103,15 @@ if ($action) {
 		'password2' => Uuid::uuid4()->toString()
 	);
 
-	// If this is an update
-	if ($_GET['type'] === 'update') {
+	// If we have a user account
+	if ($onboard->user) {
 
-		// Add the client id to the request
-		$data['clientid'] = $onboard->client;
-
-		// Fire the API request
-		$result = localAPI('UpdateClient', $data, 'Jon Erickson');
+		// Attach the user as the owner
+		$data['owner_user_id'] = $onboard->user;
 	}
 
-	// This is an add/create
-	else {
-
-		// Try to find a user account
-		try {
-
-			// First make sure the email is not associated with a user
-			$user = User::where('email', $data['email'])->firstOrFail();
-
-			// If we found a user, tell our new client it should be owned by the user
-			$data['owner_user_id'] = $user->id;
-		}
-
-		// Catch any exception
-		catch (\Exception $exception) {}
-
-		// Fire the API request
-		$result = localAPI('AddClient', $data, 'Jon Erickson');
-	}
+	// Fire the API request
+	$result = localAPI('AddClient', $data);
 
 	// If we successfully created the user
 	if ($result['result'] === 'success' && $result['clientid']) {
@@ -139,18 +119,24 @@ if ($action) {
 		// Try to get our client
 		try {
 
-			// Get the client
-			$client = Client::findOrFail($result['clientid']);
+			// Determine which user id to user
+			$userId = $onboard->user ?? $result['owner_id'];
 
 			// Set their onboard flag
-			Capsule::insert("INSERT INTO `mod_okta_members` (client_id,user_id,sub,access_token,id_token,onboarded) VALUES ('{$client->id}', '{$client->owner()->id}', '{$onboard->userinfo->sub}', '{$onboard->access_token}', '{$onboard->id_token}', 1) ON DUPLICATE KEY UPDATE user_id = '{$client->owner()->id}', sub = '{$onboard->userinfo->sub}', access_token = '{$onboard->access_token}', id_token = '{$onboard->id_token}', onboarded = 1");
+			Capsule::table('mod_okta_members')->updateOrInsert([
+				'user_id' => $userId
+			],[
+				'sub' => $onboard->userinfo->sub,
+				'access_token' => $onboard->access_token,
+				'id_token' => $onboard->id_token
+			]);
 
 			// Delete the onboarding cookie
 			Cookie::delete('OktaOnboarding');
 
 			// Log the activity
 			$message = sprintf('Okta SSO: %s %s has finished %s', $data['firstname'], $data['lastname'], $_GET['type'] === 'update' ? 'verifying their account.' : 'onboarding.');
-			logActivity($message, $result['clientid']);
+			logActivity($message, $userId);
 
 			// Create our client services URL
 			$clientservices = Uri::createFromString()->withPath('clientarea.php')->withQuery(Query::createFromParams([
@@ -166,7 +152,7 @@ if ($action) {
 		catch (\Exception $exception) {
 
 			// Set error
-			$result['message'] = 'Unable to find client account.';
+			$result['message'] = 'Unable to find user account.';
 		}
 	}
 
@@ -175,67 +161,24 @@ if ($action) {
 	$ca->assign('errormessage', $result['message']);
 }
 
-// If the client is already registered
-if ($onboard->client) {
+// Set the page title
+$ca->setPageTitle('Onboarding');
 
-	// Set the page title
-	$ca->setPageTitle('Verify Your Account');
+// Add some breadcrumbs
+$ca->addToBreadCrumb('onboard.php', 'Onboarding');
 
-	// Add some breadcrumbs
-	$ca->addToBreadCrumb('onboard.php', 'Verify Your Account');
+// Let the form know this is an create request
+$ca->assign('actiontype', 'add');
 
-	// Let the form know this is an update request
-	$ca->assign('actiontype', 'update');
+// Set the alert information text
+$ca->assign('infomessage', 'We need a little bit more information to create your client account. Please fill in the fields below to finish your account setup.');
 
-	// Set the alert information text
-	$ca->assign('infomessage', 'We found your account. Please verify your information is correct before proceeding.');
+// Assign the email var
+$ca->assign('clientemail', $onboard->userinfo->email);
 
-	// Try to load the client
-	try {
-
-		// Try to load the client
-		$client = Client::findOrFail($onboard->client);
-
-		// Set our template variables
-		$ca->assign('clientfirstname', $client->firstname);
-		$ca->assign('clientcompanyname', $client->companyname);
-		$ca->assign('clientlastname', $client->lastname);
-		$ca->assign('clientemail', $client->email);
-		$ca->assign('clientaddress1', $client->address1);
-		$ca->assign('clientaddress2', $client->address2);
-		$ca->assign('clientcity', $client->city);
-		$ca->assign('clientstate', $client->state);
-		$ca->assign('clientpostcode', $client->postcode);
-		$ca->assign('clientcountry', $client->country);
-		$ca->assign('clientphonenumber', $client->phonenumber);
-	}
-
-	// Unable to find the client
-	catch (\Exception $exception) {}
-}
-
-// This is a new user
-else {
-
-	// Set the page title
-	$ca->setPageTitle('Onboarding');
-
-	// Add some breadcrumbs
-	$ca->addToBreadCrumb('onboard.php', 'Onboarding');
-
-	// Let the form know this is an create request
-	$ca->assign('actiontype', 'add');
-
-	// Set the alert information text
-	$ca->assign('infomessage', 'We need a litte bit more information to create your account. Please fill in the fields below to finish account setup.');
-
-	// Assign the email var
-	$ca->assign('clientemail', $onboard->userinfo->email);
-
-	// Assign our userinfo
-	$ca->assign('clientfirstname', $onboard->userinfo->given_name ?? NULL);
-	$ca->assign('clientlastname', $onboard->userinfo->family_name ?? NULL);
-}
+// Assign our userinfo
+$ca->assign('clientfirstname', $onboard->userinfo->given_name ?? NULL);
+$ca->assign('clientlastname', $onboard->userinfo->family_name ?? NULL);
 
 // Set the template
 $ca->setTemplate('/modules/addons/okta/templates/onboard.tpl');

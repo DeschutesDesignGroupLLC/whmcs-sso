@@ -8,16 +8,18 @@ if (!defined("WHMCS")) {
 // Include our dependencies
 include_once(__DIR__ . DIRECTORY_SEPARATOR . 'vendor' . DIRECTORY_SEPARATOR . 'autoload.php');
 
-use League\Uri\Uri;
-use League\Uri\Components\Query;
-use League\Uri\UriModifier;
+use Illuminate\Database\Eloquent\ModelNotFoundException;
 use Jumbojett\OpenIDConnectClient;
 use Jumbojett\OpenIDConnectClientException;
+use League\Uri\Components\Query;
+use League\Uri\Uri;
+use League\Uri\UriModifier;
+use WHMCS\Authentication\CurrentUser;
+use WHMCS\Cookie;
+use WHMCS\Database\Capsule;
 use WHMCS\Module\Addon\Setting;
 use WHMCS\User\Client;
-use WHMCS\Database\Capsule;
-use WHMCS\Cookie;
-use Illuminate\Database\Eloquent\ModelNotFoundException;
+use WHMCS\User\User;
 
 /**
  * Client Area Head Output
@@ -59,7 +61,8 @@ $whmcsDetails = NULL;
 add_hook('ClientAreaPageLogin', 1, function ($vars) use ($whmcsDetails) {
 
 	// If no user logged in
-	if (!Menu::context('client')) {
+	$currentUser = new CurrentUser;
+	if (!$currentUser->user()) {
 
 		// Try and get our settings
 		try {
@@ -68,7 +71,7 @@ add_hook('ClientAreaPageLogin', 1, function ($vars) use ($whmcsDetails) {
 			if (!$whmcsDetails) {
 
 				// Get WHMCS details
-				$whmcsDetails = localAPI('WhmcsDetails', array(), 'Jon Erickson');
+				$whmcsDetails = localAPI('WhmcsDetails', array());
 			}
 
 			// If we have a version key
@@ -138,26 +141,26 @@ add_hook('ClientAreaPageLogin', 1, function ($vars) use ($whmcsDetails) {
 			try {
 
 				// Query the database for a previous login links
-				$member = Capsule::table('mod_okta_members')->where('sub', $token->sub)->orderBy('client_id', 'desc')->first();
+				$member = Capsule::table('mod_okta_members')->where('sub', $token->sub)->orderBy('user_id', 'desc')->first();
 
-				// We found a member, try and load the associated client
-				$client = Client::findOrFail($member->client_id);
+				// We found a member, try and load the associated user
+				$user = User::findOrFail($member->user_id);
 			}
 
-			// Unable to find client
+			// Unable to find user
 			catch (\Exception $exception) {
 
 				// We couldn't load a login link, so try and find the user by their email
-				$client = Client::where('email', $userinfo->email)->get()->first();
+				$user = User::where('email', $userinfo->email)->get()->first();
 			}
 
 			// If we need to onboard the client
-			if (!$client || ($member && !$member->onboarded) || ($client && !$member)) {
+			if (!$user || ($user && $user->clients->isEmpty())) {
 
 				// Create our onboarding data we'll pass in a cookie
 				$onboard = array(
 					'userinfo' => $userinfo,
-					'client' => $client->id ?? NULL,
+					'user' => $user->id ?? NULL,
 					'access_token' => $oidc->getAccessToken(),
 					'id_token' => $oidc->getIdToken()
 				);
@@ -170,22 +173,28 @@ add_hook('ClientAreaPageLogin', 1, function ($vars) use ($whmcsDetails) {
 				exit;
 			}
 
-			// If we get a client
-			if ($client) {
+			// If we get a user
+			if ($user) {
 
 				// Try and create an SSO token to log the user in
 				try {
 
 					// Add our SSO link
-					Capsule::insert("INSERT INTO `mod_okta_members` (client_id,user_id,sub,access_token,id_token) VALUES ('{$client->id}','{$client->owner()->id}','{$token->sub}','{$oidc->getAccessToken()}','{$oidc->getIdToken()}') ON DUPLICATE KEY UPDATE user_id = '{$client->owner()->id}', sub = '{$token->sub}', access_token = '{$oidc->getAccessToken()}', id_token = '{$oidc->getIdToken()}'");
+					Capsule::table('mod_okta_members')->updateOrInsert([
+						'user_id' => $user->id
+					],[
+						'sub' => $token->sub,
+						'access_token' => $oidc->getAccessToken(),
+						'id_token' => $oidc->getIdToken()
+					]);
 
 					// Compose our SSO payload
 					$sso = array(
-						'client_id' => $client->id,
+						'user_id' => $user->id,
 						'destination' => 'clientarea:services');
 
 					// Create an SSO login
-					$results = localAPI('CreateSsoToken', $sso, 'Jon Erickson');
+					$results = localAPI('CreateSsoToken', $sso);
 
 					// Log our API call
 					logModuleCall('okta', 'CreateSsoToken', $sso, $results, NULL, NULL);
@@ -405,9 +414,9 @@ add_hook('ClientAreaPageRegister', 1, function ($vars) {
  */
 add_hook("ClientAreaPageCart", 1, function ($vars) {
 
-	// If on the checkout page
-	// If we have no client
-	if (($_GET['a'] === 'checkout') && !Menu::context('client')) {
+	// If on the checkout page and no logged in user
+	$currentUser = new CurrentUser;
+	if (($_GET['a'] === 'checkout') && !$currentUser->user()) {
 
 		// Create our redirect URL
 		$cart = Uri::createFromString()->withPath('cart.php')->withQuery(Query::createFromParams([
@@ -427,27 +436,6 @@ add_hook("ClientAreaPageCart", 1, function ($vars) {
 		header("Location: {$clientservices}");
 		exit;
 	}
-});
-
-/**
- * Client Actions List
- */
-add_hook('AdminAreaClientSummaryActionLinks', 1, function ($vars) {
-
-	// Create our URL
-	$url = Uri::createFromString()->withPath('addonmodules.php')->withQuery(Query::createFromParams([
-		'module' => 'okta',
-		'action' => 'unlink',
-		'userid' => $vars['userid']
-	]))->__toString();
-
-	// Return the action link
-    return [
-        '<a style="color:#cc0000;" href="' . $url . '">
-			<img src="images/icons/delete.png" border="0" align="absmiddle">
-			Unlink Okta User Account
-		</a>',
-    ];
 });
 
 /**
