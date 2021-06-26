@@ -191,6 +191,13 @@ function okta_upgrade($vars) {
 				});
 			}
 
+			// Drop table
+			if (Capsule::schema()->hasColumn('mod_okta_members', 'onboarded')) {
+				Capsule::schema()->table('mod_okta_members', function ($table) {
+					$table->dropColumn('onboarded');
+				});
+			}
+
 			// Assign primary to user_id
 			Capsule::schema()->table('mod_okta_members', function ($table) {
 				$table->primary('user_id');
