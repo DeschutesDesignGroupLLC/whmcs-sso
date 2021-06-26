@@ -119,7 +119,7 @@ if ($action) {
 		// Try to get our client
 		try {
 
-			// Determine which user id to user
+			// Determine which user id to use
 			$userId = $onboard->user ?? $result['owner_id'];
 
 			// Set their onboard flag
@@ -135,7 +135,7 @@ if ($action) {
 			Cookie::delete('OktaOnboarding');
 
 			// Log the activity
-			$message = sprintf('Okta SSO: %s %s has finished %s', $data['firstname'], $data['lastname'], $_GET['type'] === 'update' ? 'verifying their account.' : 'onboarding.');
+			$message = sprintf('Okta SSO: %s %s has finished onboarding.', $data['firstname'], $data['lastname']);
 			logActivity($message, $userId);
 
 			// Create our client services URL

@@ -20,6 +20,7 @@ use WHMCS\Database\Capsule;
 use WHMCS\Module\Addon\Setting;
 use WHMCS\User\Client;
 use WHMCS\User\User;
+use WHMCS\User\User\UserInvite;
 
 /**
  * Client Area Head Output
@@ -30,7 +31,33 @@ add_hook('ClientAreaHeadOutput', 1, function ($vars) {
 	return <<<HTML
 	<meta name="robots" content="noindex, nofollow">
 HTML;
+});
 
+/**
+ * Client Area
+ */
+add_hook('ClientAreaPage', 1, function($vars) {
+
+	// If the user is on the invite page and not logged in
+	$currentUser = new CurrentUser;
+	if (!$currentUser->user() && array_key_exists('invite', $vars) && $vars['invite'] instanceof UserInvite) {
+		// Create our redirect URL
+		$invite = Uri::createFromString()->withPath('index.php')->withQuery(Query::createFromParams([
+			'rp' => "/invite/{$vars['invite']->token}",
+		]))->__toString();
+
+		// Store the invite token/redirect URL
+		Cookie::set('OktaRedirectUrl', $invite, strtotime('+1 hour'));
+
+		// Create our client services URL
+		$clientservices = Uri::createFromString()->withPath('clientarea.php')->withQuery(Query::createFromParams([
+			'action' => 'services'
+		]))->__toString();
+
+		// Redirect to login
+		header("Location: {$clientservices}");
+		exit;
+	}
 });
 
 /**

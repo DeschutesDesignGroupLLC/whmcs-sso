@@ -18,7 +18,7 @@ function okta_config() {
 	return array(
 		"name" => "Single Sign-On with Okta",
 		"description" => "A plug and play Single Sign-On (SSO) addon for WHMCS enabling your software to sign-in with Okta.",
-		"version" => "1.0.5",
+		"version" => "1.0.6",
 		"author" => "Deschutes Design Group LLC",
 		"language" => 'english',
 		"fields" => array(
