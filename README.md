@@ -6,8 +6,6 @@ Powered with Okta, Single Sign On with Okta allows your clients a seamless and s
 
 **Sign Up** for a free Okta Developer Account [here](https://developer.okta.com/).
 
-Prior to installing this application, you will need to create a corresponding new OIDC application integration in Okta. Instructions can be found [here](https://developer.okta.com/docs/guides/add-an-external-idp/apple/register-app-in-okta/).
-
 ## Requirements
 
 - WHMCS Version 8.2 or greater
