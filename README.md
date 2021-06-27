@@ -4,6 +4,10 @@
 
 Powered with Okta, Single Sign On with Okta allows your clients a seamless and secure login experience using only one set of login credentials. Okta is the leading provider in SSO technology, allowing businesses to efficiently manage their client identities and provide an easy user experience for their customers. By setting up Okta as your central account identity management solution, this application is a one click solution directing your clients to authenticate with a central login page and then redirected back to WHMCS. Registration and password management are also managed within Okta using this application.
 
+**Sign Up** for a free Okta Developer Account [here](https://developer.okta.com/).
+
+Prior to installing this application, you will need to create a corresponding new OIDC application integration in Okta. Instructions can be found [here](https://developer.okta.com/docs/guides/add-an-external-idp/apple/register-app-in-okta/).
+
 ## Requirements
 
 - WHMCS Version 8.2 or greater
