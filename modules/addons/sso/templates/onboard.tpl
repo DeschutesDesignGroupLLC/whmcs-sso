@@ -1,9 +1,9 @@
-{if $errormessage}
-    {include file="$template/includes/alert.tpl" type="error" errorshtml=$errormessage}
+{if $error}
+    {include file="$template/includes/alert.tpl" type="error" errorshtml=$error}
 {/if}
 
-{if $infomessage}
-    {include file="$template/includes/alert.tpl" type="info" msg=$infomessage textcenter=true}
+{if $message}
+    {include file="$template/includes/alert.tpl" type="info" msg=$message textcenter=true}
 {/if}
 
 <script type="text/javascript" src="{$BASE_PATH_JS}/StatesDropdown.js"></script>
@@ -15,7 +15,7 @@
     }
 </style>
 
-<form method="post" action="?action=submit&type={$actiontype}" role="form">
+<form method="post" action="?m=sso&controller=onboard" role="form">
     <div class="row">
         <div class="col-sm-6">
             <div class="form-group">

@@ -1,0 +1,77 @@
+version: '3'
+services:
+  nginx:
+    image: 'nginx:alpine'
+    ports:
+      - '80:80'
+    volumes:
+      - './whmcs:/var/www/html'
+      - './modules/addons/sso:/var/www/html/modules/addons/sso'
+      - './onboard.php:/var/www/html/onboard.php'
+      - './nginx/conf.d/site.conf:/etc/nginx/conf.d/site.conf'
+    networks:
+      - whmcs
+    depends_on:
+      - php
+      - mysql
+      - redis
+      - mailhog
+  php:
+    build:
+      context: ./docker
+      dockerfile: Dockerfile
+    image: whmcs-8.1
+    volumes:
+      - './whmcs:/var/www/html'
+      - './modules/addons/sso:/var/www/html/modules/addons/sso'
+      - './onboard.php:/var/www/html/onboard.php'
+      - './php/conf.d/php.ini:/usr/local/etc/php/conf.d/100-custom.ini'
+    extra_hosts:
+      - 'host.docker.internal:host-gateway'
+    networks:
+      - whmcs
+  mysql:
+    image: 'mysql:8.0'
+    ports:
+      - '3306:3306'
+    environment:
+      MYSQL_ROOT_PASSWORD: '${DB_PASSWORD:-password}'
+      MYSQL_DATABASE: '${DB_DATABASE:-whmcs}'
+      MYSQL_USER: '${DB_USERNAME:-whmcs}'
+      MYSQL_PASSWORD: '${DB_PASSWORD:-password}'
+      MYSQL_ALLOW_EMPTY_PASSWORD: 'yes'
+    volumes:
+      - 'mysql:/var/lib/mysql'
+    networks:
+      - whmcs
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-p${DB_PASSWORD:-password}"]
+      retries: 3
+      timeout: 5s
+  redis:
+    image: 'redis:alpine'
+    ports:
+      - '6379:6379'
+    volumes:
+      - 'redis:/data'
+    networks:
+      - whmcs
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      retries: 3
+      timeout: 5s
+  mailhog:
+    image: 'mailhog/mailhog:latest'
+    ports:
+      - '1025:1025'
+      - '8025:8025'
+    networks:
+      - whmcs
+networks:
+  whmcs:
+    driver: bridge
+volumes:
+  mysql:
+    driver: local
+  redis:
+    driver: local
