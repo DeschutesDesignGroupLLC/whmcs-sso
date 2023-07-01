@@ -2,6 +2,7 @@
 
 use App\Services\CookieService;
 use App\Services\RedirectService;
+use App\Services\SsoService;
 use League\Uri\Components\Query;
 use League\Uri\Uri;
 use WHMCS\Authentication\CurrentUser;
@@ -77,7 +78,7 @@ add_hook('ClientAreaPageLogin', 1, function ($vars) {
  * Delete Client
  */
 add_hook('ClientDelete', 1, function ($vars) {
-    $ssoService = new \App\Services\SsoService();
+    $ssoService = new SsoService();
     $ssoService->removeSsoConnection($vars['userid']);
 });
 

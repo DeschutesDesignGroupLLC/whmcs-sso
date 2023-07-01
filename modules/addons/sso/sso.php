@@ -186,16 +186,7 @@ function sso_upgrade($vars)
  */
 function sso_output($vars)
 {
-    $method = match (true) {
-        $_SERVER['REQUEST_METHOD'] === 'POST' => 'store',
-        $_SERVER['REQUEST_METHOD'] === 'PUT' => 'update',
-        $_SERVER['REQUEST_METHOD'] === 'DELETE' => 'delete',
-        default => 'index'
-    };
-
-    $controller = new AdminController();
-
-    echo $controller->dispatch($method, $vars);
+    echo (new AdminController())->dispatch($vars);
 }
 
 /**
@@ -210,12 +201,5 @@ function sso_clientarea($vars)
         default => new ClientController()
     };
 
-    $method = match (true) {
-        $_SERVER['REQUEST_METHOD'] === 'POST' => 'store',
-        $_SERVER['REQUEST_METHOD'] === 'PUT' => 'update',
-        $_SERVER['REQUEST_METHOD'] === 'DELETE' => 'delete',
-        default => 'index'
-    };
-
-    return $controller->dispatch($method, $vars);
+    return $controller->dispatch($vars);
 }

@@ -39,9 +39,16 @@ class Controller
     /**
      * @return array|string
      */
-    public function dispatch(string $method = 'index', array $parameters = [])
+    public function dispatch(array $parameters = [])
     {
         $controller = new static();
+
+        $method = match (true) {
+            $_SERVER['REQUEST_METHOD'] === 'POST' => 'store',
+            $_SERVER['REQUEST_METHOD'] === 'PUT' => 'update',
+            $_SERVER['REQUEST_METHOD'] === 'DELETE' => 'delete',
+            default => 'index'
+        };
 
         if (is_callable([$controller, $method])) {
             return $controller->$method($parameters);
