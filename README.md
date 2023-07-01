@@ -1,7 +1,6 @@
 # Single Sign-On (SSO) for WHMCS
-#### Providing A Seamless and Secure Login Experience for WHMCS
 
----
+#### Providing A Seamless and Secure Login Experience for WHMCS
 
 ## Requirements
 
