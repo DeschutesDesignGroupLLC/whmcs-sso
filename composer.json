@@ -1,10 +1,11 @@
 {
-  "name": "deschutesdesigngroupllc/whmcs-sso-okta",
-  "description": "A plug and play Single Sign-On (SSO) addon for WHMCS enabling your software to sign-in with Okta.",
+  "name": "deschutesdesigngroupllc/whmcs-sso",
+  "description": "A plug and play Single Sign-On (SSO) addon for WHMCS.",
   "keywords": [
     "whmcs",
     "sso",
-    "auth0"
+    "auth0",
+    "okta"
   ],
   "authors": [
     {
@@ -14,13 +15,21 @@
       "role": "Owner"
     }
   ],
+  "autoload": {
+    "psr-4": {
+      "App\\": "modules/addons/sso/app"
+    }
+  },
   "homepage": "https://www.deschutesdesigngroup.com/",
   "config": {
-    "vendor-dir": "modules/addons/okta/vendor"
+    "vendor-dir": "modules/addons/sso/vendor"
   },
   "require": {
     "jumbojett/openid-connect-php": "dev-master",
     "league/uri": "^6.3.0",
     "league/uri-components": "^2.2.1"
+  },
+  "require-dev": {
+    "symfony/var-dumper": "^6.3"
   }
 }

@@ -1,0 +1,32 @@
+{
+  "schema": "1.2",
+  "type": "whmcs-addons",
+  "name": "sso",
+  "license": "proprietary",
+  "category": "signin",
+  "description": {
+    "name": "Single Sign-On (SSO) for WHMCS",
+    "tagline": "Providing A Seamless and Secure Login Experience for WHMCS",
+    "long": "Single Sign-On (SSO) for WHMCS allows your clients a seamless and secure login experience using well-known industry standard Identity Providers such as Okta or Auth0.",
+    "features": [
+      "Plug and play with multiple Identity Providers",
+      "Pre-built authentication and authorization",
+      "Onboard all your new clients",
+      "Lightweight and easy to install"
+    ]
+  },
+  "logo": {
+    "filename": "logo.png"
+  },
+  "support": {
+    "homepage": "https:\/\/www.deschutesdesigngroup.com\/",
+    "email": "support@deschutesdesigngroup.com",
+    "support_url": "https:\/\/www.deschutesdesigngroup.com/support\/"
+  },
+  "authors": [
+    {
+      "name": "Deschutes Design Group LLC",
+      "homepage": "https:\/\/www.deschutesdesigngroup.com\/"
+    }
+  ]
+}
