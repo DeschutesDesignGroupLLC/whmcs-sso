@@ -2,12 +2,20 @@
 
 use App\Http\Controllers\AdminController;
 use App\Http\Controllers\ClientController;
+use App\Http\Controllers\ErrorController;
+use App\Http\Controllers\LoginController;
+use App\Http\Controllers\OnboardController;
 use WHMCS\Database\Capsule;
 use WHMCS\User\Client;
 
+/**
+ * Do not all the file to be accessed directly
+ */
 if (! defined('WHMCS')) {
     exit('This file cannot be accessed directly');
 }
+
+require_once __DIR__.DIRECTORY_SEPARATOR.'vendor'.DIRECTORY_SEPARATOR.'autoload.php';
 
 /**
  * @return array
@@ -174,15 +182,20 @@ function sso_upgrade($vars)
 }
 
 /**
- * @return array
+ * @return string
  */
 function sso_output($vars)
 {
-    $action = $_REQUEST['action'] ?? '';
+    $method = match (true) {
+        $_SERVER['REQUEST_METHOD'] === 'POST' => 'store',
+        $_SERVER['REQUEST_METHOD'] === 'PUT' => 'update',
+        $_SERVER['REQUEST_METHOD'] === 'DELETE' => 'delete',
+        default => 'index'
+    };
 
-    $dispatcher = new AdminController();
+    $controller = new AdminController();
 
-    return $dispatcher->dispatch($action, $vars);
+    echo $controller->dispatch($method, $vars);
 }
 
 /**
@@ -190,9 +203,19 @@ function sso_output($vars)
  */
 function sso_clientarea($vars)
 {
-    $action = $_REQUEST['action'] ?? '';
+    $controller = match (true) {
+        $_REQUEST['controller'] === 'error' => new ErrorController(),
+        $_REQUEST['controller'] === 'login' => new LoginController(),
+        $_REQUEST['controller'] === 'onboard' => new OnboardController(),
+        default => new ClientController()
+    };
 
-    $dispatcher = new ClientController();
+    $method = match (true) {
+        $_SERVER['REQUEST_METHOD'] === 'POST' => 'store',
+        $_SERVER['REQUEST_METHOD'] === 'PUT' => 'update',
+        $_SERVER['REQUEST_METHOD'] === 'DELETE' => 'delete',
+        default => 'index'
+    };
 
-    return $dispatcher->dispatch($action, $vars);
+    return $controller->dispatch($method, $vars);
 }
