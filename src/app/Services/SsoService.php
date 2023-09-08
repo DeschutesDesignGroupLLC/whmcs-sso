@@ -1,6 +1,6 @@
 <?php
 
-namespace App\Services;
+namespace DeschutesDesignGroupLLC\App\Services;
 
 use Illuminate\Support\Arr;
 use WHMCS\Database\Capsule;
@@ -8,10 +8,7 @@ use WHMCS\User\User;
 
 class SsoService
 {
-    /**
-     * @return mixed
-     */
-    public function findSsoConnection($sub, $email)
+    public function findSsoConnection($sub, $email): mixed
     {
         try {
             $member = Capsule::table('mod_sso_members')->where('sub', $sub)->orderBy('user_id', 'desc')->first();
@@ -23,10 +20,7 @@ class SsoService
         return $user;
     }
 
-    /**
-     * @return void
-     */
-    public function addSsoConnection($userId, $sub, $accessToken, $idToken)
+    public function addSsoConnection($userId, $sub, $accessToken, $idToken): void
     {
         Capsule::table('mod_sso_members')->updateOrInsert([
             'user_id' => $userId,
@@ -37,10 +31,7 @@ class SsoService
         ]);
     }
 
-    /**
-     * @return void
-     */
-    public function removeSsoConnection($userId)
+    public function removeSsoConnection($userId): void
     {
         Capsule::table('mod_sso_members')->whereIn('user_id', Arr::wrap($userId))->delete();
     }

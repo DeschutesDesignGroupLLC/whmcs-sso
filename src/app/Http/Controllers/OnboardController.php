@@ -1,6 +1,8 @@
 <?php
 
-namespace App\Http\Controllers;
+namespace DeschutesDesignGroupLLC\App\Http\Controllers;
+
+use JetBrains\PhpStorm\NoReturn;
 
 require 'includes/clientfunctions.php';
 
@@ -27,10 +29,7 @@ class OnboardController extends Controller
         }
     }
 
-    /**
-     * @return array
-     */
-    public function index($vars)
+    public function index($vars): array
     {
         return [
             'pagetitle' => 'Onboarding',
@@ -50,10 +49,8 @@ class OnboardController extends Controller
         ];
     }
 
-    /**
-     * @return void
-     */
-    public function store()
+    #[NoReturn]
+    public function store(): void
     {
         $data = [
             'firstname' => $_POST['firstname'],

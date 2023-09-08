@@ -17,13 +17,10 @@
   ],
   "autoload": {
     "psr-4": {
-      "App\\": "modules/addons/sso/app"
+      "DeschutesDesignGroupLLC\\App\\": "app"
     }
   },
   "homepage": "https://www.deschutesdesigngroup.com/",
-  "config": {
-    "vendor-dir": "modules/addons/sso/vendor"
-  },
   "require": {
     "jumbojett/openid-connect-php": "^v0.9.10",
     "league/uri": "^6.3.0",
@@ -32,6 +29,11 @@
   "require-dev": {
     "symfony/var-dumper": "^6.3",
     "phpunit/phpunit": "^10.2.3",
-    "phpstan/phpstan": "^1.10.22"
+    "phpstan/phpstan": "^1.10.22",
+    "laravel/pint": "^1.13"
+  },
+  "scripts": {
+    "lint": "src/modules/addons/sso/vendor/bin pint src/modules/addons/sso",
+    "package": "./scripts/package.sh"
   }
 }

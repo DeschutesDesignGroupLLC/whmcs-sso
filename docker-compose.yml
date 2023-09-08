@@ -6,11 +6,12 @@ services:
       - '80:80'
     volumes:
       - './whmcs:/var/www/html'
-      - './modules/addons/sso:/var/www/html/modules/addons/sso'
-      - './onboard.php:/var/www/html/onboard.php'
+      - './src:/var/www/html/modules/addons/sso'
       - './nginx/conf.d/site.conf:/etc/nginx/conf.d/site.conf'
     networks:
       - whmcs
+    extra_hosts:
+      - 'host.docker.internal:host-gateway'
     depends_on:
       - php
       - mysql
@@ -23,8 +24,7 @@ services:
     image: whmcs-8.1
     volumes:
       - './whmcs:/var/www/html'
-      - './modules/addons/sso:/var/www/html/modules/addons/sso'
-      - './onboard.php:/var/www/html/onboard.php'
+      - './src:/var/www/html/modules/addons/sso'
       - './php/conf.d/php.ini:/usr/local/etc/php/conf.d/100-custom.ini'
     extra_hosts:
       - 'host.docker.internal:host-gateway'

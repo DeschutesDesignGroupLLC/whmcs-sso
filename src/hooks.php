@@ -1,8 +1,8 @@
 <?php
 
-use App\Services\CookieService;
-use App\Services\RedirectService;
-use App\Services\SsoService;
+use DeschutesDesignGroupLLC\App\Services\CookieService;
+use DeschutesDesignGroupLLC\App\Services\RedirectService;
+use DeschutesDesignGroupLLC\App\Services\SsoService;
 use League\Uri\Components\Query;
 use League\Uri\Uri;
 use WHMCS\Authentication\CurrentUser;
@@ -17,7 +17,7 @@ if (! defined('WHMCS')) {
     exit('This file cannot be accessed directly');
 }
 
-include_once __DIR__.DIRECTORY_SEPARATOR.'vendor'.DIRECTORY_SEPARATOR.'autoload.php';
+require_once __DIR__.'/vendor/autoload.php';
 
 /**
  * Client Area Head Output
@@ -124,8 +124,8 @@ add_hook('UserLogout', 1, function ($vars) {
 add_hook('ClientAreaPageCart', 1, function ($vars) {
     $redirectService = new RedirectService();
     $cookieService = new CookieService();
-
     $currentUser = new CurrentUser;
+
     if (($_GET['a'] === 'checkout') && ! $currentUser->user()) {
         $cookieService->setRedirectCookie(Uri::createFromString()->withPath('cart.php')->withQuery(Query::createFromParams([
             'a' => 'checkout',

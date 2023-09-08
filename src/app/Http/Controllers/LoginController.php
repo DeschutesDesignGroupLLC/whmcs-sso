@@ -1,14 +1,21 @@
 <?php
 
-namespace App\Http\Controllers;
+namespace DeschutesDesignGroupLLC\App\Http\Controllers;
 
 use Exception;
 use Jumbojett\OpenIDConnectClient;
+use Jumbojett\OpenIDConnectClientException;
 use WHMCS\Module\Addon\Setting;
 
 class LoginController extends Controller
 {
     protected Setting $provider;
+
+    protected Setting $authorizationEndpoint;
+
+    protected Setting $tokenEndpoint;
+
+    protected Setting $userinfoEndpoint;
 
     private Setting $clientId;
 
@@ -26,6 +33,9 @@ class LoginController extends Controller
         parent::__construct();
 
         $this->provider = Setting::where('module', 'sso')->where('setting', 'provider')->firstOrFail();
+        $this->authorizationEndpoint = Setting::where('module', 'sso')->where('setting', 'authorize_endpoint')->firstOrFail();
+        $this->tokenEndpoint = Setting::where('module', 'sso')->where('setting', 'token_endpoint')->firstOrFail();
+        $this->userinfoEndpoint = Setting::where('module', 'sso')->where('setting', 'userinfo_endpoint')->firstOrFail();
         $this->clientId = Setting::where('module', 'sso')->where('setting', 'clientid')->firstOrFail();
         $this->clientSecret = Setting::where('module', 'sso')->where('setting', 'clientsecret')->firstOrFail();
         $this->scopes = Setting::where('module', 'sso')->where('setting', 'scopes')->firstOrFail();
@@ -33,14 +43,19 @@ class LoginController extends Controller
     }
 
     /**
-     * @return void
-     *
-     * @throws \Jumbojett\OpenIDConnectClientException
+     * @throws OpenIDConnectClientException
      */
-    public function index()
+    public function index(): void
     {
         try {
-            $oidc = new OpenIDConnectClient($this->provider->value, $this->clientId->value, $this->clientSecret->value);
+            $oidc = new OpenIDConnectClient($this->provider->value);
+            $oidc->providerConfigParam([
+                'authorization_endpoint' => $this->authorizationEndpoint->value,
+                'token_endpoint' => $this->tokenEndpoint->value,
+                'userinfo_endpoint' => $this->userinfoEndpoint->value,
+            ]);
+            $oidc->setClientID($this->clientId->value);
+            $oidc->setClientSecret($this->clientSecret->value);
             $oidc->setRedirectURL((isset($_SERVER['HTTPS']) && $_SERVER['HTTPS'] === 'on' ? 'https' : 'http')."://$_SERVER[HTTP_HOST]".'/index.php?m=sso&controller=login');
             $oidc->addScope(explode(',', $this->scopes->value));
             $oidc->setUrlEncoding(PHP_QUERY_RFC1738);

@@ -1,10 +1,10 @@
 <?php
 
-use App\Http\Controllers\AdminController;
-use App\Http\Controllers\ClientController;
-use App\Http\Controllers\ErrorController;
-use App\Http\Controllers\LoginController;
-use App\Http\Controllers\OnboardController;
+use DeschutesDesignGroupLLC\App\Http\Controllers\AdminController;
+use DeschutesDesignGroupLLC\App\Http\Controllers\ClientController;
+use DeschutesDesignGroupLLC\App\Http\Controllers\ErrorController;
+use DeschutesDesignGroupLLC\App\Http\Controllers\LoginController;
+use DeschutesDesignGroupLLC\App\Http\Controllers\OnboardController;
 use WHMCS\Database\Capsule;
 use WHMCS\User\Client;
 
@@ -15,7 +15,7 @@ if (! defined('WHMCS')) {
     exit('This file cannot be accessed directly');
 }
 
-require_once __DIR__.DIRECTORY_SEPARATOR.'vendor'.DIRECTORY_SEPARATOR.'autoload.php';
+require_once __DIR__.'/vendor/autoload.php';
 
 /**
  * @return array
@@ -33,8 +33,25 @@ function sso_config()
                 'FriendlyName' => 'Provider',
                 'Type' => 'text',
                 'Size' => '25',
-                'Placeholder' => 'https://yourdomain.okta.com/oauth2/default',
-                'Description' => '<br>Your authorization server domain. This can be your Okta provided domain or a custom domain.',
+                'Description' => '<br>Your IDP base provider URL.',
+            ],
+            'authorize_endpoint' => [
+                'FriendlyName' => 'Authorization Endpoint',
+                'Type' => 'text',
+                'Size' => '25',
+                'Description' => '<br>Your IDP authorization endpoint.',
+            ],
+            'token_endpoint' => [
+                'FriendlyName' => 'Token Endpoint',
+                'Type' => 'text',
+                'Size' => '25',
+                'Description' => '<br>Your IDP token endpoint.',
+            ],
+            'userinfo_endpoint' => [
+                'FriendlyName' => 'Userinfo Endpoint',
+                'Type' => 'text',
+                'Size' => '25',
+                'Description' => '<br>Your IDP userinfo endpoint.',
             ],
             'clientid' => [
                 'FriendlyName' => 'Client ID',
@@ -52,8 +69,8 @@ function sso_config()
                 'FriendlyName' => 'Scopes',
                 'Type' => 'text',
                 'Size' => '25',
-                'Placeholder' => 'profile,email',
-                'Description' => "<br>Your application scopes to request. Please separate each scope with a comma - no whitespace. (The request will include 'openid' be default).",
+                'Placeholder' => 'openid,profile,email',
+                'Description' => '<br>Your application scopes to request. Please separate each scope with a comma - no whitespace.',
             ],
             'disablessl' => [
                 'FriendlyName' => 'Disable SSL Verification',
@@ -76,6 +93,12 @@ function sso_config()
                 'Type' => 'text',
                 'Size' => '25',
                 'Description' => '<br>If provided, the client will be taken to this URL when attempting to logout.',
+            ],
+            'logoutidtoken' => [
+                'FriendlyName' => 'Append ID Token Parameter',
+                'Type' => 'text',
+                'Size' => '25',
+                'Description' => '<br>If provided, the logout URL will contain an extra query parameter with the user\'s ID token set to the value of the field.',
             ],
         ],
     ];
