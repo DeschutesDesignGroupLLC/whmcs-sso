@@ -81,7 +81,7 @@ function sso_config()
                 'FriendlyName' => 'Registration URL',
                 'Type' => 'text',
                 'Size' => '25',
-                'Description' => '<br>If provided, the client will be taken to this URL when attempting to create an account.'],
+                'Description' => '<br>If provided, the client will be taken to this URL when attempting to create an account. If you specify any query parameters, they will be appended to the authorization request if redirected to such endpoint.'],
             'redirectpassword' => [
                 'FriendlyName' => 'Change Password URL',
                 'Type' => 'text',
@@ -99,6 +99,18 @@ function sso_config()
                 'Type' => 'text',
                 'Size' => '25',
                 'Description' => '<br>If provided, the logout URL will contain an extra query parameter with the user\'s ID token set to the value of the field.',
+            ],
+            'logoutredirectkey' => [
+                'FriendlyName' => 'Logout Redirect Parameter',
+                'Type' => 'text',
+                'Size' => '25',
+                'Description' => '<br>If provided, the logout URL will contain an extra query parameter with the value specified equal to the "Logout Redirection Location".',
+            ],
+            'logoutredirectvalue' => [
+                'FriendlyName' => 'Logout Redirect Location',
+                'Type' => 'text',
+                'Size' => '25',
+                'Description' => '<br>The intended target to redirect a user after a successful logout. Will be set to the "Logout Redirect Parameter" specified above.',
             ],
         ],
     ];

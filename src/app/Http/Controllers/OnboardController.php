@@ -86,8 +86,6 @@ class OnboardController extends Controller
             $this->redirectService->redirectToClientArea();
         }
 
-        $this->redirectService->redirectToOnboarding([
-            'error' => $result['message'],
-        ]);
+        $this->redirectService->redirectToOnboarding($result['message']);
     }
 }

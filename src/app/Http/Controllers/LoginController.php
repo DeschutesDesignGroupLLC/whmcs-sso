@@ -2,6 +2,7 @@
 
 namespace DeschutesDesignGroupLLC\App\Http\Controllers;
 
+use DeschutesDesignGroupLLC\App\Services\CookieService;
 use Exception;
 use Jumbojett\OpenIDConnectClient;
 use Jumbojett\OpenIDConnectClientException;
@@ -59,6 +60,13 @@ class LoginController extends Controller
             $oidc->setRedirectURL((isset($_SERVER['HTTPS']) && $_SERVER['HTTPS'] === 'on' ? 'https' : 'http')."://$_SERVER[HTTP_HOST]".'/index.php?m=sso&controller=login');
             $oidc->addScope(explode(',', $this->scopes->value));
             $oidc->setUrlEncoding(PHP_QUERY_RFC1738);
+
+            $cookieService = new CookieService();
+            if ($query = $cookieService->getRegistrationUrlCookie()) {
+                $oidc->addAuthParam($query);
+
+                $cookieService->removeRegistrationUrlCookie();
+            }
 
             if ($this->disableSsl->value) {
                 $oidc->setVerifyHost(false);
