@@ -1,15 +1,13 @@
 <?php
 
-namespace App\Http\Controllers;
+namespace DeschutesDesignGroupLLC\App\Http\Controllers;
 
+use JetBrains\PhpStorm\NoReturn;
 use Whmcs\Database\Capsule;
 
 class AdminController extends Controller
 {
-    /**
-     * @return string|void
-     */
-    public function index()
+    public function index(): string
     {
         $html =
 <<<'HTML'
@@ -58,10 +56,8 @@ HTML;
         return $html;
     }
 
-    /**
-     * @return void
-     */
-    public function store()
+    #[NoReturn]
+    public function store(): void
     {
         $this->ssoService->removeSsoConnection($_POST['selectedclients']);
 

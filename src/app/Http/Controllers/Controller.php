@@ -1,11 +1,11 @@
 <?php
 
-namespace App\Http\Controllers;
+namespace DeschutesDesignGroupLLC\App\Http\Controllers;
 
-use App\Services\ClientService;
-use App\Services\CookieService;
-use App\Services\RedirectService;
-use App\Services\SsoService;
+use DeschutesDesignGroupLLC\App\Services\ClientService;
+use DeschutesDesignGroupLLC\App\Services\CookieService;
+use DeschutesDesignGroupLLC\App\Services\RedirectService;
+use DeschutesDesignGroupLLC\App\Services\SsoService;
 use WHMCS\Authentication\CurrentUser;
 use WHMCS\User\User;
 
@@ -36,10 +36,7 @@ class Controller
         }
     }
 
-    /**
-     * @return array|string
-     */
-    public function dispatch(array $parameters = [])
+    public function dispatch(array $parameters = []): array|string
     {
         $controller = new static();
 

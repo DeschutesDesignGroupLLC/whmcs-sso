@@ -2,7 +2,7 @@
 .idea
 
 # Dependencies
+build
 vendor
 node_module
-bin
 whmcs

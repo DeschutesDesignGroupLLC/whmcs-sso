@@ -1,13 +1,10 @@
 <?php
 
-namespace App\Http\Controllers;
+namespace DeschutesDesignGroupLLC\App\Http\Controllers;
 
 class ErrorController extends Controller
 {
-    /**
-     * @return array
-     */
-    public function index()
+    public function index(): array
     {
         return [
             'pagetitle' => 'Error',

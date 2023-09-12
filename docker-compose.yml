@@ -6,11 +6,13 @@ services:
       - '80:80'
     volumes:
       - './whmcs:/var/www/html'
-      - './modules/addons/sso:/var/www/html/modules/addons/sso'
-      - './onboard.php:/var/www/html/onboard.php'
+      - './src:/var/www/html/modules/addons/sso'
       - './nginx/conf.d/site.conf:/etc/nginx/conf.d/site.conf'
     networks:
-      - whmcs
+      whmcs:
+        ipv4_address: 172.20.0.2
+    extra_hosts:
+      - 'host.docker.internal:host-gateway'
     depends_on:
       - php
       - mysql
@@ -23,13 +25,13 @@ services:
     image: whmcs-8.1
     volumes:
       - './whmcs:/var/www/html'
-      - './modules/addons/sso:/var/www/html/modules/addons/sso'
-      - './onboard.php:/var/www/html/onboard.php'
+      - './src:/var/www/html/modules/addons/sso'
       - './php/conf.d/php.ini:/usr/local/etc/php/conf.d/100-custom.ini'
     extra_hosts:
       - 'host.docker.internal:host-gateway'
     networks:
-      - whmcs
+      whmcs:
+        ipv4_address: 172.20.0.3
   mysql:
     image: 'mysql:8.0'
     ports:
@@ -43,7 +45,8 @@ services:
     volumes:
       - 'mysql:/var/lib/mysql'
     networks:
-      - whmcs
+      whmcs:
+        ipv4_address: 172.20.0.4
     healthcheck:
       test: ["CMD", "mysqladmin", "ping", "-p${DB_PASSWORD:-password}"]
       retries: 3
@@ -55,7 +58,8 @@ services:
     volumes:
       - 'redis:/data'
     networks:
-      - whmcs
+      whmcs:
+        ipv4_address: 172.20.0.5
     healthcheck:
       test: ["CMD", "redis-cli", "ping"]
       retries: 3
@@ -66,10 +70,15 @@ services:
       - '1025:1025'
       - '8025:8025'
     networks:
-      - whmcs
+      whmcs:
+        ipv4_address: 172.20.0.6
 networks:
   whmcs:
     driver: bridge
+    ipam:
+      config:
+        - subnet: 172.20.0.0/16
+          gateway: 172.20.0.1
 volumes:
   mysql:
     driver: local
