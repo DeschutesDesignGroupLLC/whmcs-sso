@@ -12,7 +12,7 @@ class CookieService
 
     protected static string $registrationUrlCookie = 'SsoRegistrationUrl';
 
-    public function setOnboardingCookie($userInfo, $userId, $accessToken, $idToken): void
+    public function setOnboardingCookie(mixed $userInfo, string|int $userId, string $accessToken, string $idToken): void
     {
         Cookie::set(static::$onboardingCookie, base64_encode(json_encode([
             'userinfo' => $userInfo,
@@ -32,7 +32,7 @@ class CookieService
         Cookie::delete(static::$onboardingCookie);
     }
 
-    public function setRedirectCookie($url): void
+    public function setRedirectCookie(string $url): void
     {
         Cookie::set(static::$redirectCookie, $url, strtotime('+1 hour'));
     }

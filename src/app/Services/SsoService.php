@@ -8,7 +8,7 @@ use WHMCS\User\User;
 
 class SsoService
 {
-    public function findSsoConnection($sub, $email): mixed
+    public function findSsoConnection(string $sub, string $email): mixed
     {
         try {
             $member = Capsule::table('mod_sso_members')->where('sub', $sub)->orderBy('user_id', 'desc')->first();
@@ -20,7 +20,7 @@ class SsoService
         return $user;
     }
 
-    public function addSsoConnection($userId, $sub, $accessToken, $idToken): void
+    public function addSsoConnection(string|int $userId, string $sub, string $accessToken, string $idToken): void
     {
         Capsule::table('mod_sso_members')->updateOrInsert([
             'user_id' => $userId,
@@ -31,7 +31,7 @@ class SsoService
         ]);
     }
 
-    public function removeSsoConnection($userId): void
+    public function removeSsoConnection(string|int|array $userId): void
     {
         Capsule::table('mod_sso_members')->whereIn('user_id', Arr::wrap($userId))->delete();
     }

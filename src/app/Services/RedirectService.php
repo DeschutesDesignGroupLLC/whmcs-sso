@@ -12,7 +12,7 @@ use WHMCS\Module\Addon\Setting;
 class RedirectService
 {
     #[NoReturn]
-    public function redirectToLocation($location = null, array $parameters = null): void
+    public function redirectToLocation(string $location = null, array $parameters = null): void
     {
         if ($parameters) {
             $query = '?'.http_build_query($parameters);
@@ -59,7 +59,7 @@ class RedirectService
     }
 
     #[NoReturn]
-    public function redirectToError($message): void
+    public function redirectToError(string $message): void
     {
         $this->redirectToLocation('index.php', [
             'm' => 'sso',
@@ -101,7 +101,7 @@ class RedirectService
         $this->redirectToLogin();
     }
 
-    public function redirectToLogout($userId): void
+    public function redirectToLogout(string|int $userId): void
     {
         $redirect = Setting::where('module', 'sso')->where('setting', 'redirectlogout')->first();
         $logoutIdToken = Setting::where('module', 'sso')->where('setting', 'logoutidtoken')->first();
